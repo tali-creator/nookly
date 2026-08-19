@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="partials/icons.html"></div>
+  <main class="min-h-screen bg-background">
+    <header class="border-b border-border/70">
+      <div class="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 lg:px-8">
+        <a href="index.html" class="font-mono text-xl font-bold">nookly</a>
+        <a href="index.html" class="flex items-center gap-2 text-sm text-muted-foreground"><svg class="size-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to browse</a>
+      </div>
+    </header>
+    <div class="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
+      <div id="page-body" class="hidden">
+        <div id="cover" class="relative flex min-h-72 items-end rounded-[2rem] bg-[#d7ebbd] p-6 sm:p-10" style="background-size:cover;background-position:center">
+          <button id="fav-btn" class="absolute right-5 top-5 flex size-11 items-center justify-center rounded-full bg-background/80 transition hover:scale-105" aria-label="Save business"><svg class="size-5" aria-hidden="true"><use href="#i-heart"/></svg></button>
+          <div id="cover-initials" class="hidden size-28 items-center justify-center rounded-full border-4 border-background/70 bg-background/50 text-3xl font-bold"></div>
+        </div>
+        <div class="grid gap-10 py-8 lg:grid-cols-[1fr_340px]">
+          <div>
+            <div class="flex flex-wrap items-center gap-3">
+              <span id="status-badge" class="rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary"></span>
+              <span id="open-badge" class="hidden rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary"></span>
+            </div>
+            <h1 id="name" class="mt-4 font-mono text-4xl font-bold tracking-[-.06em]"></h1>
+            <p id="meta" class="mt-2 flex items-center gap-2 text-muted-foreground"></p>
+            <p id="description" class="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground"></p>
+            <div id="contact-row" class="mt-8 flex flex-wrap gap-3"></div>
+            <div class="mt-10">
+              <h2 class="font-mono text-2xl font-bold">Services and prices</h2>
+              <div id="service-list" class="mt-4 flex flex-col gap-3"></div>
+            </div>
+            <div class="mt-10">
+              <h2 class="font-mono text-2xl font-bold">Opening hours</h2>
+              <div id="hours-table" class="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 sm:p-6"></div>
+            </div>
+          </div>
+          <aside id="sidebar" class="flex h-fit flex-col gap-4 rounded-2xl border border-border bg-card p-6"></aside>
+        </div>
+      </div>
+      <div id="not-found" class="hidden rounded-2xl border border-dashed border-border py-20 text-center">
+        <h1 class="font-mono text-3xl font-bold">Business not found</h1>
+        <p class="mt-3 text-muted-foreground">This listing may have been removed or is not yet live.</p>
+        <a href="index.html" class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Back to browse</a>
+      </div>
+      <div id="error-state" class="hidden rounded-2xl border border-dashed border-border py-20 text-center">
+        <h1 class="font-mono text-3xl font-bold">Something went wrong</h1>
+        <p id="error-msg" class="mt-3 text-muted-foreground"></p>
+        <a href="index.html" class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Back to browse</a>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/device-id.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/include.js"></script>
+  <script>
+    const id = new URLSearchParams(window.location.search).get('id')
+
+    function fireEvent(type) {
+      apiPost('/businesses/' + id + '/events', { type, deviceId: getDeviceId() }).catch(() => {})
+    }
+
+    function renderHours(hours) {
+      const wrap = document.getElementById('hours-table')
+      if (!hours || !hours.length) {
+        wrap.innerHTML = '<p class="text-sm text-muted-foreground">Opening hours not listed yet.</p>'
+        return
+      }
+      const rows = hours.map((h) => {
+        const label = DAY_NAMES[h.dayOfWeek]
+        const value = h.isClosed ? 'Closed' : (formatTime(h.openTime) + ' – ' + formatTime(h.closeTime))
+        const today = new Date().getDay() === h.dayOfWeek
+        return '<div class="flex items-center justify-between py-1.5 text-sm"><span class="' + (today ? 'font-bold' : 'text-muted-foreground') + '">' + label + '</span><span class="' + (today ? 'font-bold text-primary' : '') + '">' + value + '</span></div>'
+      }).join('')
+      wrap.innerHTML = rows
+    }
+
+    function renderSidebar(b) {
+      const prices = (b.serviceItems || []).map((s) => parsePrice(s.price))
+      const minPrice = prices.length ? Math.min(...prices) : null
+      const phone = b.phone || ''
+      const whatsapp = b.whatsappNumber || null
+      document.getElementById('sidebar').innerHTML = `
+        ${minPrice != null ? '<p class="text-sm text-muted-foreground">Starting price</p><p class="font-mono text-3xl font-bold">' + formatNaira(minPrice) + '</p>' : ''}
+        ${hoursSummary(b.hours, b.timezone) ? '<div class="flex items-center gap-2 border-t border-border pt-4 text-sm"><svg class="size-4 text-primary" aria-hidden="true"><use href="#i-clock-3"/></svg>' + escapeHtml(hoursSummary(b.hours)) + '</div>' : ''}
+        <div class="flex items-center gap-2 text-sm"><svg class="size-4 text-primary" aria-hidden="true"><use href="#i-map-pin"/></svg>' + escapeHtml(b.address || '') + '</div>
+        ${phone ? '<a href="tel:' + phone.replace(/[^\d+]/g, '') + '" class="flex items-center gap-2 text-sm font-semibold text-primary"><svg class="size-4 text-primary" aria-hidden="true"><use href="#i-phone"/></svg>' + escapeHtml(phone) + '</a>' : ''}
+        ${whatsapp ? '<a href="https://wa.me/' + whatsapp.replace(/[^\d]/g, '') + '" target="_blank" rel="noopener" class="flex items-center gap-2 text-sm font-semibold text-primary"><svg class="size-4 text-primary" aria-hidden="true"><use href="#i-message-circle"/></svg>WhatsApp</a>' : ''}
+        <a href="owner.html?businessId=${b.id}" class="flex items-center gap-2 text-sm font-semibold text-primary"><svg class="size-4 text-primary" aria-hidden="true"><use href="#i-user-round"/></svg>Visit owner profile</a>
+        <a href="chat.html?businessId=${b.id}&ownerId=${b.ownerId}" class="mt-3 rounded-xl bg-primary py-3 text-center text-sm font-bold text-primary-foreground"><svg class="mb-0.5 inline size-4" aria-hidden="true"><use href="#i-message-circle"/></svg> Chat with the owner</a>`
+    }
+
+    function renderContact(b) {
+      const wrap = document.getElementById('contact-row')
+      const phone = b.phone || ''
+      const whatsapp = b.whatsappNumber || null
+      const parts = []
+      if (phone) {
+        const a = document.createElement('a')
+        a.href = 'tel:' + phone.replace(/[^\d+]/g, '')
+        a.className = 'flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground'
+        a.innerHTML = '<svg class="size-4" aria-hidden="true"><use href="#i-phone"/></svg>Call'
+        a.addEventListener('click', () => fireEvent('CONTACT_CALL'))
+        parts.push(a)
+      }
+      if (whatsapp) {
+        const a = document.createElement('a')
+        a.href = 'https://wa.me/' + whatsapp.replace(/[^\d]/g, '')
+        a.target = '_blank'
+        a.rel = 'noopener'
+        a.className = 'flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold'
+        a.innerHTML = '<svg class="size-4" aria-hidden="true"><use href="#i-message-circle"/></svg>WhatsApp'
+        a.addEventListener('click', () => fireEvent('CONTACT_WHATSAPP'))
+        parts.push(a)
+      }
+      wrap.innerHTML = ''
+      parts.forEach((el) => wrap.appendChild(el))
+    }
+
+    async function load() {
+      if (!id) { showNotFound(); return }
+      let res
+      try {
+        res = await apiGet('/businesses/' + id)
+      } catch (err) {
+        if (err.status === 404) { showNotFound(); return }
+        document.getElementById('error-msg').textContent = err.message || 'Please try again.'
+        document.getElementById('error-state').classList.remove('hidden')
+        return
+      }
+      const b = res.data.business
+      fireEvent('PROFILE_VIEW')
+      document.title = b.name + ' — Nookly'
+      document.getElementById('name').textContent = b.name
+      document.getElementById('meta').innerHTML = '<svg class="size-4" aria-hidden="true"><use href="#i-map-pin"/></svg>' + escapeHtml(b.address) + (b.category ? ' · ' + escapeHtml(b.category.name) : '')
+      document.getElementById('description').textContent = b.description
+      document.getElementById('status-badge').textContent = b.isFeatured ? 'Featured' : 'Local business'
+
+      const open = isOpenNow(b.hours, b.timezone)
+      const openBadge = document.getElementById('open-badge')
+      if (open !== null) {
+        openBadge.classList.remove('hidden')
+        openBadge.textContent = open ? 'Open now' : 'Closed now'
+        openBadge.className = 'rounded-full px-3 py-1 text-xs font-bold ' + (open ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground')
+      }
+
+      const cover = imageUrl(b.photos && b.photos.length ? b.photos[0].url : null)
+      const coverEl = document.getElementById('cover')
+      const initialsEl = document.getElementById('cover-initials')
+      if (cover) {
+        coverEl.style.backgroundImage = 'url(' + cover + ')'
+      } else {
+        initialsEl.classList.remove('hidden')
+        initialsEl.classList.add('flex')
+        initialsEl.textContent = initials(b.name)
+      }
+
+      const serviceList = document.getElementById('service-list')
+      if (b.serviceItems && b.serviceItems.length) {
+        serviceList.innerHTML = b.serviceItems.map((s) => {
+          const img = imageUrl(s.imageUrl)
+          const thumb = img
+            ? '<img src="' + img + '" alt="" class="rounded-lg object-cover" style="width:60px;height:60px" />'
+            : '<span class="flex items-center justify-center rounded-lg bg-muted text-muted-foreground" style="width:60px;height:60px"><svg class="size-6" aria-hidden="true"><use href="#i-image-plus"/></svg></span>'
+          return '<div class="flex items-center gap-4 rounded-xl border border-border bg-card p-4"><span class="shrink-0">' + thumb + '</span><span class="min-w-0 flex-1"><span class="block font-semibold">' + escapeHtml(s.name) + '</span></span><span class="shrink-0 font-bold text-primary">' + formatNaira(s.price) + '</span></div>'
+        }).join('')
+      } else {
+        serviceList.innerHTML = '<p class="text-sm text-muted-foreground">No services listed yet.</p>'
+      }
+
+      renderHours(b.hours)
+      renderSidebar(b)
+      renderContact(b)
+
+      document.getElementById('page-body').classList.remove('hidden')
+
+      const favBtn = document.getElementById('fav-btn')
+      const heart = favBtn.querySelector('svg')
+      try {
+        const { data } = await apiGet('/favorites/check?deviceId=' + getDeviceId() + '&businessId=' + b.id)
+        heart.classList.toggle('fill-primary', data.favorited)
+        heart.classList.toggle('text-primary', data.favorited)
+      } catch {}
+      favBtn.addEventListener('click', async () => {
+        const body = { deviceId: getDeviceId(), businessId: b.id }
+        let next
+        try { await apiPost('/favorites', body); next = true }
+        catch { try { await apiDelete('/favorites', body); next = false } catch { return } }
+        heart.classList.toggle('fill-primary', next)
+        heart.classList.toggle('text-primary', next)
+      })
+    }
+
+    function showNotFound() {
+      document.getElementById('not-found').classList.remove('hidden')
+    }
+
+    load()
+  </script>
+</body>
+</html>

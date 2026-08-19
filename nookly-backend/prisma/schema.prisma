@@ -1,0 +1,388 @@
+// Nookly backend schema
+// Geo-distance note: for the future nearby-search endpoint we will add a
+// PostGIS extension (and a GIST index on Business.location) or fall back to a
+// raw SQL haversine query over Business.lat/lng. No search endpoint yet.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  BUSINESS_OWNER
+  ADMIN
+}
+
+// KYC is verified once per OWNER (per User), not per business — a verified
+// owner can list multiple businesses without re-submitting documents.
+// Business approval is gated on the owner's KYC status.
+enum UserKycStatus {
+  NOT_SUBMITTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum KycSubmissionStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum ProofOfAddressType {
+  HOME
+  WORKSHOP
+  BOTH
+}
+
+enum BusinessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+// Preferred way for customers to reach this owner. Null = no preference set.
+enum PreferredContactMethod {
+  PHONE
+  WHATSAPP
+  EMAIL
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  // Set to "now" whenever the password is changed (or reset). Embedded as an
+  // epoch number in JWTs at login, so requireAuth can reject tokens issued
+  // BEFORE the last password change — a leaked/stolen token dies the moment
+  // the account password rotates.
+  passwordChangedAt DateTime @default(now())
+  role         UserRole @default(BUSINESS_OWNER)
+  // Profile fields (owner account settings). email is NOT editable here —
+  // changing it is a separate, more sensitive flow.
+  displayName    String?
+  // Short "about me" for the owner, shown on their public-facing profile.
+  // Separate from any per-business description. Capped at 300 chars.
+  bio            String?
+  dateOfBirth    DateTime?
+  phone          String?
+  whatsappNumber String?
+  // Preferred contact channel for customers (see enum above). Null = unset.
+  preferredContactMethod PreferredContactMethod?
+  // Free-form key-value social handles, validated to known keys only
+  // (instagram/facebook/twitter/tiktok) in the API layer.
+  socialHandles Json?
+  avatarUrl     String?
+  // KYC is verified once per owner. Business approval is gated on this.
+  kycStatus     UserKycStatus @default(NOT_SUBMITTED)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  // Soft delete (admin archive). Non-null => the account is archived:
+  // hidden from the directory, and login/requireAuth reject it. Restore sets
+  // it back to null. The row is never physically removed so audit trails and
+  // related records (businesses, KYC, orders) stay intact.
+  deletedAt    DateTime?
+
+  businesses           Business[]
+  kycSubmission        KycSubmission?      @relation("KycSubmissionOwner")
+  kycSubmissionsReviewed KycSubmission[]   @relation("KycReviewedBy")
+  passwordResetTokens  PasswordResetToken[]
+  ownerVisits          OwnerVisit[]
+  notifications        Notification[]
+
+  @@map("users")
+}
+
+// One-time password reset tokens. Only the SHA-256 hash of the raw token is
+// stored (same principle as password hashing), so a DB leak never exposes a
+// usable reset link. Old tokens for a user are invalidated on each new request.
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// One submission record per user — resubmission overwrites (upsert on userId)
+// rather than creating duplicates. The latest submission IS the user's KYC
+// state; status is mirrored on User.kycStatus by the controllers.
+model KycSubmission {
+  id    String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user   User   @relation("KycSubmissionOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  // NIN is stored ENCRYPTED at rest (AES-256-GCM, key = KYC_ENCRYPTION_KEY).
+  // The raw value is never decrypted or returned by any API response. The
+  // masked display value is precomputed at write time and stored in
+  // ninMasked, so reads never need to decrypt.
+  nin String
+  ninMasked String
+  // Private files (uploads-private/), NOT the public /uploads folder. These
+  // URLs are never returned to clients; documents are streamed via the
+  // authenticated /kyc/documents/:field routes.
+  selfieUrl                String
+  certificateUrl           String?
+  proofOfAddressType       ProofOfAddressType
+  proofOfAddressHomeUrl    String?
+  proofOfAddressWorkshopUrl String?
+
+  status            KycSubmissionStatus @default(PENDING)
+  rejectionReason   String?             @db.Text
+  submittedAt       DateTime            @default(now())
+  reviewedAt        DateTime?
+  reviewedByAdminId String?             @db.Uuid
+  reviewedByAdmin   User?               @relation("KycReviewedBy", fields: [reviewedByAdminId], references: [id])
+
+  @@index([status])
+  @@map("kyc_submissions")
+}
+
+model Business {
+  id              String         @id @default(uuid()) @db.Uuid
+  ownerId         String         @db.Uuid
+  owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name            String
+  categoryId      String         @db.Uuid
+  category        Category       @relation(fields: [categoryId], references: [id])
+  description     String         @db.Text
+  address         String
+  lat             Float
+  lng             Float
+  phone           String
+  whatsappNumber  String?
+  status          BusinessStatus @default(PENDING)
+  moderationNote  String?        @db.Text
+  // IANA timezone name (e.g. "Africa/Lagos"). Defaults to "Africa/Lagos" for
+  // now; should eventually be inferred from lat/lng or set explicitly by the
+  // owner when the business profile is created/edited.
+  timezone        String         @default("Africa/Lagos")
+  // Featured/promoted status. isFeatured is the raw flag; the *effective*
+  // "currently featured" boolean is computed at query time as
+  // isFeatured AND (featuredUntil IS NULL OR featuredUntil > now()). Never
+  // store a derived column; recompute so expiry is always accurate without
+  // a cron job. featuredUntil = null means indefinite.
+  isFeatured      Boolean        @default(false)
+  featuredUntil   DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  serviceItems ServiceItem[]
+  photos       Photo[]
+  hours        BusinessHours[]
+  favorites    Favorite[]
+  analyticsEvents AnalyticsEvent[]
+  conversations Conversation[]
+
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([lat, lng])
+  @@map("businesses")
+}
+
+enum AnalyticsEventType {
+  PROFILE_VIEW
+  CONTACT_CALL
+  CONTACT_WHATSAPP
+}
+
+// Lightweight analytics events. No account required: a customer frontend fires
+// these anonymously, optionally tagging the client's deviceId (same concept as
+// favorites) when the frontend has one.
+model AnalyticsEvent {
+  id         String              @id @default(uuid()) @db.Uuid
+  businessId String              @db.Uuid
+  business   Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  type       AnalyticsEventType
+  deviceId   String?
+  createdAt  DateTime            @default(now())
+
+  @@index([businessId, type, createdAt])
+  @@map("analytics_events")
+}
+
+// Public owner-profile visits. Mirrors AnalyticsEvent but scoped to the owner
+// profile page (owner.html) rather than a single business listing. Same
+// anonymous trust model: optionally tagged with the client's deviceId so an
+// owner can see how many people visit their profile.
+model OwnerVisit {
+  id        String   @id @default(uuid()) @db.Uuid
+  ownerId   String   @db.Uuid
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  deviceId  String?
+  createdAt DateTime @default(now())
+
+  @@index([ownerId, createdAt])
+  @@map("owner_visits")
+}
+
+enum NotificationType {
+  BUSINESS_APPROVED
+  BUSINESS_REJECTED
+  BUSINESS_SUSPENDED
+  KYC_VERIFIED
+  KYC_REJECTED
+  NEW_MESSAGE
+}
+
+// In-app notifications delivered to a signed-in user in real time over
+// WebSocket and persisted here for the notification inbox. Each row targets
+// one recipient. `data` carries navigation context (e.g. { businessId,
+// conversationId }) so the frontend can deep-link from the notification.
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String           @db.Text
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// Anonymous-customer favorites. Customers have no account; they are
+// identified by a client-generated deviceId (UUID persisted in localStorage
+// by the frontend).
+model Favorite {
+  id         String   @id @default(uuid()) @db.Uuid
+  deviceId   String
+  businessId String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([deviceId, businessId])
+  @@index([deviceId])
+  @@map("favorites")
+}
+
+model BusinessHours {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int // 0 = Sunday ... 6 = Saturday
+  openTime   String? // "HH:mm" 24-hour format
+  closeTime  String? // "HH:mm" 24-hour format
+  // true = closed all day; openTime/closeTime must be null in that case
+  isClosed   Boolean  @default(false)
+
+  @@unique([businessId, dayOfWeek])
+  @@index([businessId])
+  @@map("business_hours")
+}
+
+model Category {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  businesses Business[]
+
+  @@map("categories")
+}
+
+model ServiceItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  businessId  String   @db.Uuid
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  price       Decimal  @db.Decimal(10, 2)
+  description String?  @db.Text
+  // Public photo for this service/price item (owner-uploaded via
+  // POST /services/:id/photo). Stored under the public /uploads directory.
+  imageUrl    String?
+
+  @@index([businessId])
+  @@map("service_items")
+}
+
+// Immutable audit trail for admin moderation actions (business approve/reject/
+// suspend/feature/unfeature, KYC verify/reject). Written alongside the action;
+// never updated or deleted. actorId/actorRole identify WHO did it, action +
+// targetType/targetId WHAT, metadata any structured context, createdAt WHEN.
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @db.Uuid
+  actorRole  String
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model Photo {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  url        String
+  order      Int      @default(0)
+
+  @@index([businessId])
+  @@map("photos")
+}
+
+// Sender of a chat message. CUSTOMER = anonymous visitor identified by a
+// deviceId (same concept as favorites); OWNER = the business owner account.
+enum MessageSenderType {
+  CUSTOMER
+  OWNER
+}
+
+// One chat thread between an anonymous customer (deviceId) and the owner of a
+// single business. A deviceId + businessId pair maps to exactly one thread.
+// Status is for the owner dashboard later: OPEN means awaiting a reply,
+// CLOSED means the thread has been resolved/archived.
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+model Conversation {
+  id         String             @id @default(uuid()) @db.Uuid
+  businessId String             @db.Uuid
+  business   Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  // Anonymous customer identity (client-generated UUID in localStorage).
+  deviceId   String
+  status     ConversationStatus @default(OPEN)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  messages Message[]
+
+  @@unique([businessId, deviceId])
+  @@index([businessId])
+  @@index([deviceId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String            @id @default(uuid()) @db.Uuid
+  conversationId String            @db.Uuid
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType     MessageSenderType
+  // Set when senderType = CUSTOMER; null for OWNER messages. Used by the
+  // frontend to render bubbles as mine vs theirs.
+  senderDeviceId String?
+  text           String            @db.Text
+  createdAt      DateTime          @default(now())
+
+  @@index([conversationId])
+  @@map("messages")
+}

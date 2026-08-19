@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="origin" />
+  <title>Business listing — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body data-page="owner" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="../partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="../partials/header-marketplace.html"></div>
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="../partials/sidebar-marketplace.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your Nookly</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]"><span id="form-title">Business listing</span></h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Create or update the public details customers use to choose your business.</p>
+        </div>
+        <p class="mb-6 hidden rounded-xl bg-red-50 p-3 text-sm text-red-600" id="message"></p>
+
+        <div class="flex flex-col gap-6">
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <h2 class="font-mono text-xl font-bold">Business details</h2>
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+              <label class="flex flex-col gap-2 text-sm font-semibold">Business name<input id="f-name" class="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary" /></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold">Category<select id="f-category" class="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none"></select></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">Description<textarea id="f-description" rows="4" class="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary"></textarea></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">Address<input id="f-address" placeholder="Street, area, city" autocomplete="street-address" class="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary" /></label>
+              <input type="hidden" id="f-lat" />
+              <input type="hidden" id="f-lng" />
+              <div class="flex flex-wrap items-center gap-3 sm:col-span-2">
+                <button type="button" id="loc-detect-btn" class="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary"><span aria-hidden="true">📍</span>Detect my location again</button>
+                <button type="button" id="loc-manual-btn" class="hidden items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-bold text-primary hover:border-primary">Not right? Set manually</button>
+                <button type="button" id="loc-update-btn" class="hidden rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary">Update location</button>
+              </div>
+              <p id="loc-status" class="hidden rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground sm:col-span-2"></p>
+              <label class="flex flex-col gap-2 text-sm font-semibold">Phone<input id="f-phone" placeholder="+234 801 234 5678" class="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary" /></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold">WhatsApp number (optional)<input id="f-whatsapp" placeholder="+234 801 234 5678" class="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary" /></label>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <h2 class="font-mono text-xl font-bold">Opening hours</h2>
+              <span class="text-xs text-muted-foreground">Submit all 7 days at once</span>
+            </div>
+            <div class="mt-4 flex flex-col divide-y divide-border" id="hours-editor"></div>
+          </div>
+
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <h2 class="font-mono text-xl font-bold">Photos</h2>
+            <p class="mt-1 text-sm text-muted-foreground">Up to 6 photos (JPEG, PNG, or WebP, max 5MB each).</p>
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4" id="photo-grid"></div>
+            <input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" />
+            <p class="mt-3 text-sm text-muted-foreground" id="photo-status"></p>
+          </div>
+
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <h2 class="font-mono text-xl font-bold">Services &amp; prices</h2>
+              <button id="add-service" class="flex items-center gap-1 text-sm font-bold text-primary"><svg class="size-4" aria-hidden="true"><use href="#i-plus"/></svg>Add</button>
+            </div>
+            <div class="mt-4 flex flex-col gap-3" id="service-list"></div>
+          </div>
+
+          <p id="reapproval-warning" class="hidden rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">Saving changes to this listing will go live right away.</p>
+
+          <button id="save-btn" class="flex items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-primary-foreground"><svg class="size-4" aria-hidden="true"><use href="#i-save"/></svg>Save business</button>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/helpers.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/include.js"></script>
+  <script>
+    if (requireOwner()) throw new Error('redirecting')
+
+    let businessId = new URLSearchParams(window.location.search).get('id')
+    let categories = []
+    let photos = []
+    let pendingPhotos = []
+    let services = []
+    let hours = []
+
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+    function showMessage(text) {
+      const m = document.getElementById('message')
+      m.textContent = text
+      m.classList.remove('hidden')
+    }
+
+    /* ------------------------------------------------------------
+       Location: auto-detect (geolocation + reverse geocode) with a
+       manual address-based fallback. Lat/lng stay in the hidden
+       f-lat / f-lng fields and are submitted exactly as before.
+       ------------------------------------------------------------ */
+
+    const ADDRESS = document.getElementById('f-address')
+    const LAT = document.getElementById('f-lat')
+    const LNG = document.getElementById('f-lng')
+    const LOC_STATUS = document.getElementById('loc-status')
+    const LOC_DETECT = document.getElementById('loc-detect-btn')
+    const LOC_MANUAL = document.getElementById('loc-manual-btn')
+    const LOC_UPDATE = document.getElementById('loc-update-btn')
+
+    let locationMode = 'idle' // 'idle' | 'detecting' | 'auto' | 'manual'
+
+    /* Nominatim requires a valid HTTP Referer/User-Agent identifying the
+       client. Browsers block setting User-Agent from JS, so we send an
+       explicit Referer header (allowed by fetch) plus a custom
+       X-Requested-With. We also rate-limit to 1 request/second because
+       blur + submit can fire close together. */
+    let lastNominatimAt = 0
+    async function nominatim(url) {
+      const now = Date.now()
+      const wait = Math.max(0, 1000 - (now - lastNominatimAt))
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+      lastNominatimAt = Date.now()
+      const res = await fetch(url, {
+        headers: {
+          Referer: window.location.origin + '/',
+          'X-Requested-With': 'Nookly',
+        },
+      })
+      if (!res.ok) throw new Error('Location service error (' + res.status + ')')
+      return res.json()
+    }
+
+    function setCoords(lat, lng) {
+      LAT.value = lat == null ? '' : lat
+      LNG.value = lng == null ? '' : lng
+    }
+
+    function hasValidCoords() {
+      const lat = parseFloat(LAT.value)
+      const lng = parseFloat(LNG.value)
+      return Number.isFinite(lat) && Number.isFinite(lng) &&
+        lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 &&
+        !(lat === 0 && lng === 0)
+    }
+
+    function setLocStatus(text, tone) {
+      LOC_STATUS.textContent = text
+      LOC_STATUS.classList.remove('hidden')
+      LOC_STATUS.className = 'rounded-xl border px-4 py-3 text-sm sm:col-span-2 ' + (
+        tone === 'ok' ? 'border-primary/20 bg-primary/10 text-primary'
+        : tone === 'error' ? 'border-destructive/30 bg-red-50 text-red-600'
+        : 'border-border bg-muted/60 text-muted-foreground')
+    }
+
+    async function reverseGeocode(lat, lng) {
+      const data = await nominatim(
+        'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json'
+      )
+      return (data && data.display_name) || ''
+    }
+
+    async function forwardGeocode(query) {
+      const data = await nominatim(
+        'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1'
+      )
+      const hit = Array.isArray(data) && data.length ? data[0] : null
+      if (!hit) return null
+      return { lat: parseFloat(hit.lat), lng: parseFloat(hit.lon) }
+    }
+
+    function enterManualMode(message) {
+      locationMode = 'manual'
+      setLocStatus(message, 'warn')
+      LOC_MANUAL.classList.add('hidden')
+      ADDRESS.focus()
+    }
+
+    /* Fire the browser geolocation prompt + reverse geocode. */
+    function detectLocation() {
+      if (!navigator.geolocation) {
+        enterManualMode("Your browser doesn't support location detection. Type your address below and it will be looked up automatically.")
+        return
+      }
+      locationMode = 'detecting'
+      LOC_MANUAL.classList.add('hidden')
+      setLocStatus('Detecting your location…', 'warn')
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude
+          const lng = pos.coords.longitude
+          setCoords(lat, lng)
+          locationMode = 'auto'
+          setLocStatus('📍 Location detected', 'ok')
+          LOC_MANUAL.classList.remove('hidden')
+          try {
+            const address = await reverseGeocode(lat, lng)
+            if (address) {
+              ADDRESS.value = address
+              setLocStatus('📍 Location detected — we filled in the address. Edit it if needed.', 'ok')
+            } else {
+              setLocStatus('📍 Location detected — but the address lookup came up empty. Type your address.', 'warn')
+            }
+          } catch (err) {
+            setLocStatus('📍 Location detected — but the address lookup failed (' + (err.message || 'network error') + '). Type your address.', 'warn')
+          }
+        },
+        (err) => {
+          setCoords('', '')
+          locationMode = 'idle'
+          if (err.code === err.PERMISSION_DENIED) {
+            enterManualMode('Location permission was denied. Type your address below and it will be looked up automatically — or allow location in your browser settings and try again.')
+          } else if (err.code === err.TIMEOUT) {
+            enterManualMode('Location detection timed out. Type your address below and it will be looked up automatically.')
+          } else {
+            enterManualMode('We couldn\u2019t detect your location. Type your address below and it will be looked up automatically.')
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      )
+    }
+
+    /* Try to resolve the address field into lat/lng. Returns true if coords
+       are valid afterwards, false otherwise. */
+    async function resolveAddressFromField() {
+      const query = ADDRESS.value.trim()
+      if (!query) {
+        setLocStatus('Type an address to look up your location.', 'error')
+        return false
+      }
+      setLocStatus('Looking up "' + query + '"…', 'warn')
+      try {
+        const result = await forwardGeocode(query)
+        if (!result) {
+          setCoords('', '')
+          setLocStatus("We couldn't determine your location — please try a more specific address.", 'error')
+          return false
+        }
+        setCoords(result.lat, result.lng)
+        setLocStatus('📍 Location found for "' + query + '".', 'ok')
+        return true
+      } catch (err) {
+        setCoords('', '')
+        setLocStatus('Location lookup failed (' + (err.message || 'network error') + '). Please try again.', 'error')
+        return false
+      }
+    }
+
+    LOC_DETECT.addEventListener('click', detectLocation)
+
+    LOC_MANUAL.addEventListener('click', () => {
+      enterManualMode('Type your address below, then tap away from the field to confirm your location.')
+    })
+
+    LOC_UPDATE.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        enterManualMode("Your browser doesn't support location detection. Type your address below and it will be looked up automatically.")
+        return
+      }
+      LOC_UPDATE.classList.add('hidden')
+      detectLocation()
+    })
+
+    /* Forward-geocode when the owner blurs the address field in manual mode. */
+    ADDRESS.addEventListener('blur', () => {
+      if (locationMode === 'manual' && ADDRESS.value.trim()) resolveAddressFromField()
+    })
+
+    /* Edit mode: show the saved address/location without re-detecting.
+       "Update location" re-triggers the same detect/fallback flow. */
+    function setupEditLocation() {
+      locationMode = 'auto'
+      LOC_DETECT.classList.add('hidden')
+      LOC_MANUAL.classList.add('hidden')
+      LOC_UPDATE.classList.remove('hidden')
+      const saved = ADDRESS.value.trim()
+      setLocStatus('📍 Location saved: ' + (saved || 'no address on file') + ' — use "Update location" to change it.', 'ok')
+    }
+
+    async function loadCategories() {
+      const { data } = await apiGet('/categories')
+      categories = data.categories || []
+      const sel = document.getElementById('f-category')
+      sel.innerHTML = '<option value="">Select a category</option>' + categories.map((c) => '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>').join('')
+    }
+
+    async function loadBusiness() {
+      const { data } = await apiGet('/businesses/mine')
+      const found = (data.businesses || []).find((b) => b.id === businessId)
+      if (!found) { showMessage('Business not found.'); return }
+      document.getElementById('form-title').textContent = 'Edit: ' + found.name
+      document.getElementById('f-name').value = found.name
+      document.getElementById('f-category').value = found.categoryId
+      document.getElementById('f-description').value = found.description || ''
+      document.getElementById('f-address').value = found.address || ''
+      setCoords(found.lat, found.lng)
+      document.getElementById('f-phone').value = found.phone || ''
+      document.getElementById('f-whatsapp').value = found.whatsappNumber || ''
+      photos = found.photos || []
+      services = found.serviceItems || []
+      if (found.status === 'APPROVED') document.getElementById('reapproval-warning').classList.remove('hidden')
+      setupEditLocation()
+      renderPhotos()
+      renderServices()
+      loadHours()
+    }
+
+    async function loadHours() {
+      try {
+        const { data } = await apiGet('/businesses/' + businessId + '/hours')
+        hours = data.hours || []
+      } catch { hours = [] }
+      renderHours()
+    }
+
+    function renderHours() {
+      const wrap = document.getElementById('hours-editor')
+      wrap.innerHTML = ''
+      const empty = { isClosed: false, openTime: '09:00', closeTime: '17:00' }
+      for (let i = 0; i < 7; i++) {
+        const existing = hours.find((h) => h.dayOfWeek === i)
+        const h = existing || empty
+        const row = document.createElement('div')
+        row.className = 'flex flex-col gap-3 py-4 sm:flex-row sm:items-center'
+        row.innerHTML = `
+          <span class="w-32 text-sm font-bold">${DAYS[i]}</span>
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="is-closed size-4" ${h.isClosed ? 'checked' : ''} />Closed</label>
+          <div class="flex items-center gap-2 text-sm">
+            <input type="time" class="open-time rounded-xl border border-border bg-background px-3 py-2 outline-none" value="${h.openTime || ''}" />
+            <span>to</span>
+            <input type="time" class="close-time rounded-xl border border-border bg-background px-3 py-2 outline-none" value="${h.closeTime || ''}" />
+          </div>`
+        const closed = row.querySelector('.is-closed')
+        const openTime = row.querySelector('.open-time')
+        const closeTime = row.querySelector('.close-time')
+        const toggle = () => {
+          openTime.disabled = closed.checked
+          closeTime.disabled = closed.checked
+        }
+        closed.addEventListener('change', toggle)
+        toggle()
+        wrap.appendChild(row)
+      }
+    }
+
+    function collectHours() {
+      const rows = document.querySelectorAll('#hours-editor > div')
+      return Array.from(rows).map((row, i) => ({
+        dayOfWeek: i,
+        isClosed: row.querySelector('.is-closed').checked,
+        openTime: row.querySelector('.is-closed').checked ? null : row.querySelector('.open-time').value,
+        closeTime: row.querySelector('.is-closed').checked ? null : row.querySelector('.close-time').value,
+      }))
+    }
+
+    function renderPhotos() {
+      const grid = document.getElementById('photo-grid')
+      grid.innerHTML = ''
+      photos.forEach((photo) => {
+        const div = document.createElement('div')
+        div.className = 'relative aspect-square overflow-hidden rounded-xl'
+        div.innerHTML = `
+          <img src="${imageUrl(photo.url)}" alt="Business photo" class="h-full w-full object-cover" />
+          <button class="del-photo absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-background/85 text-sm font-bold" aria-label="Delete photo">✕</button>`
+        div.querySelector('.del-photo').addEventListener('click', async () => {
+          try {
+            await apiDelete('/photos/' + photo.id)
+            photos = photos.filter((p) => p.id !== photo.id)
+            renderPhotos()
+          } catch (err) { alert(err.message || 'Delete failed') }
+        })
+        grid.appendChild(div)
+      })
+      pendingPhotos.forEach((p) => {
+        const div = document.createElement('div')
+        div.className = 'relative aspect-square overflow-hidden rounded-xl'
+        div.innerHTML = `
+          <img src="${p.preview}" alt="Business photo" class="h-full w-full object-cover" />
+          <button class="del-pending-photo absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-background/85 text-sm font-bold" aria-label="Remove photo">✕</button>`
+        div.querySelector('.del-pending-photo').addEventListener('click', () => {
+          pendingPhotos = pendingPhotos.filter((x) => x !== p)
+          renderPhotos()
+        })
+        grid.appendChild(div)
+      })
+      const add = document.createElement('button')
+      add.type = 'button'
+      add.className = 'flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary'
+      if (photos.length + pendingPhotos.length >= 6) {
+        add.innerHTML = '<span class="text-xs">6 photo limit</span>'
+        add.disabled = true
+      } else {
+        add.innerHTML = '<svg class="size-5" aria-hidden="true"><use href="#i-image-plus"/></svg>Add photo'
+        add.addEventListener('click', () => document.getElementById('photo-input').click())
+      }
+      grid.appendChild(add)
+    }
+
+    async function uploadPhoto(file) {
+      if (photos.length + pendingPhotos.length >= 6) { document.getElementById('photo-status').textContent = 'Photo limit reached (max 6)'; return }
+      const status = document.getElementById('photo-status')
+      if (!businessId) {
+        pendingPhotos.push({ file, preview: URL.createObjectURL(file) })
+        renderPhotos()
+        status.textContent = 'Photo added — will be saved with the business.'
+        setTimeout(() => { status.textContent = '' }, 2500)
+        return
+      }
+      const fd = new FormData()
+      fd.append('photo', file)
+      status.textContent = 'Uploading…'
+      try {
+        const { data } = await apiPost('/businesses/' + businessId + '/photos', fd)
+        photos.push(data.photo)
+        renderPhotos()
+        status.textContent = 'Photo uploaded.'
+        setTimeout(() => { status.textContent = '' }, 2500)
+      } catch (err) {
+        status.textContent = err.message || 'Upload failed'
+      }
+    }
+
+    document.getElementById('photo-input').addEventListener('change', (e) => {
+      const file = e.target.files[0]
+      if (file) uploadPhoto(file)
+      e.target.value = ''
+    })
+
+    function serviceRow(s) {
+      const div = document.createElement('div')
+      div.className = 'flex items-center gap-3'
+      div._svc = s
+      const img = s._pendingPreview || imageUrl(s.imageUrl)
+      const thumb = img
+        ? '<img src="' + img + '" alt="Service photo" class="size-14 rounded-lg object-cover" style="width:56px;height:56px" />'
+        : '<span class="flex size-14 items-center justify-center rounded-lg bg-muted text-muted-foreground" style="width:56px;height:56px"><svg class="size-5" aria-hidden="true"><use href="#i-image-plus"/></svg></span>'
+      div.innerHTML = `
+        <div class="svc-photo relative shrink-0">
+          ${thumb}
+          <input type="file" accept="image/jpeg,image/png,image/webp" class="svc-photo-input hidden" />
+          ${img
+            ? '<button type="button" class="svc-photo-remove absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-background/90 text-xs" aria-label="Remove service photo">✕</button>'
+            : ''}
+        </div>
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <input class="svc-name min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm" value="${escapeHtml(s.name)}" placeholder="Service name" />
+            <input class="svc-price w-32 rounded-xl border border-border bg-background px-4 py-3 text-sm" value="${escapeHtml(s.price)}" placeholder="0.00" />
+            <button type="button" class="svc-photo-btn flex shrink-0 items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:border-primary" title="${img ? 'Replace service photo' : 'Add service photo'}">
+              <svg class="size-4" aria-hidden="true"><use href="#i-upload"/></svg>${img ? 'Photo' : 'Add photo'}
+            </button>
+            ${s.id
+              ? '<button type="button" class="remove-service" data-id="' + s.id + '" aria-label="Remove service"><svg class="size-4 text-muted-foreground" aria-hidden="true"><use href="#i-trash-2"/></svg></button>'
+              : '<button type="button" class="discard-service" aria-label="Discard service"><svg class="size-4 text-muted-foreground" aria-hidden="true"><use href="#i-trash-2"/></svg></button>'}
+          </div>
+          <p class="svc-photo-status hidden text-xs text-muted-foreground"></p>
+        </div>`
+      const del = div.querySelector('.remove-service, .discard-service')
+      const nameInput = div.querySelector('.svc-name')
+      const priceInput = div.querySelector('.svc-price')
+      /* Keep the service object in sync with the inputs so re-renders
+         (after photo staging) preserve what the user typed. */
+      nameInput.addEventListener('input', () => { s.name = nameInput.value })
+      priceInput.addEventListener('input', () => { s.price = priceInput.value })
+      del.addEventListener('click', async () => {
+        if (s.id) {
+          try {
+            await apiDelete('/services/' + s.id)
+            services = services.filter((x) => x.id !== s.id)
+            renderServices()
+          } catch (err) { alert(err.message || 'Delete failed') }
+        } else {
+          services = services.filter((x) => x !== s)
+          renderServices()
+        }
+      })
+      /* Photo upload/replace: persisted services upload immediately; new
+         unsaved services stage the file locally and it's uploaded after the
+         service is created on save. */
+      const photoBtn = div.querySelector('.svc-photo-btn')
+      const photoInput = div.querySelector('.svc-photo-input')
+      const statusEl = div.querySelector('.svc-photo-status')
+      photoBtn.addEventListener('click', () => photoInput.click())
+      photoInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0]
+        e.target.value = ''
+        if (!file) return
+        if (s.id) {
+          statusEl.textContent = 'Uploading…'
+          statusEl.classList.remove('hidden')
+          try {
+            const fd = new FormData()
+            fd.append('photo', file)
+            const { data } = await apiPost('/services/' + s.id + '/photo', fd)
+            s.imageUrl = data.serviceItem.imageUrl
+            renderServices()
+          } catch (err) {
+            statusEl.textContent = err.message || 'Upload failed'
+          }
+          return
+        }
+        s._pendingFile = file
+        s._pendingPreview = URL.createObjectURL(file)
+        statusEl.textContent = 'Photo added — will be saved with the service.'
+        statusEl.classList.remove('hidden')
+        renderServices()
+      })
+      const removeBtn = div.querySelector('.svc-photo-remove')
+      if (removeBtn) {
+        removeBtn.addEventListener('click', async () => {
+          if (s._pendingFile) {
+            s._pendingFile = null
+            s._pendingPreview = null
+            renderServices()
+            return
+          }
+          statusEl.textContent = 'Removing…'
+          statusEl.classList.remove('hidden')
+          try {
+            await apiDelete('/services/' + s.id + '/photo')
+            s.imageUrl = null
+            renderServices()
+          } catch (err) {
+            statusEl.textContent = err.message || 'Remove failed'
+          }
+        })
+      }
+      return div
+    }
+
+    function renderServices() {
+      const list = document.getElementById('service-list')
+      list.innerHTML = ''
+      services.forEach((s) => list.appendChild(serviceRow(s)))
+    }
+
+    document.getElementById('add-service').addEventListener('click', () => {
+      services.push({ id: null, name: '', price: '', _pendingFile: null, _pendingPreview: null })
+      renderServices()
+      const rows = document.querySelectorAll('#service-list > div')
+      const last = rows[rows.length - 1]
+      if (last) last.querySelector('.svc-name').focus()
+    })
+
+    function collectNewServices() {
+      const rows = document.querySelectorAll('#service-list > div')
+      return Array.from(rows).map((row) => ({
+        id: row.querySelector('.remove-service') ? row.querySelector('.remove-service').getAttribute('data-id') : null,
+        name: row.querySelector('.svc-name').value.trim(),
+        price: row.querySelector('.svc-price').value.trim(),
+        pendingFile: row._svc ? row._svc._pendingFile : null,
+      }))
+    }
+
+    async function uploadPendingPhotos() {
+      for (const p of pendingPhotos) {
+        const fd = new FormData()
+        fd.append('photo', p.file)
+        const { data } = await apiPost('/businesses/' + businessId + '/photos', fd)
+        photos.push(data.photo)
+      }
+      pendingPhotos = []
+      renderPhotos()
+    }
+
+    async function submit() {
+      /* Never submit without valid coordinates. In manual mode, first try
+         to resolve the typed address; if that fails, block the form. */
+      if (!hasValidCoords()) {
+        if (locationMode === 'manual' && ADDRESS.value.trim()) {
+          const ok = await resolveAddressFromField()
+          if (!ok) {
+            showMessage("We couldn't determine your location — please try a more specific address.")
+            ADDRESS.focus()
+            return
+          }
+        } else {
+          showMessage('Set your business location before saving.')
+          LOC_DETECT.focus()
+          return
+        }
+      }
+
+      const payload = {
+        name: document.getElementById('f-name').value.trim(),
+        categoryId: document.getElementById('f-category').value,
+        description: document.getElementById('f-description').value.trim(),
+        address: document.getElementById('f-address').value.trim(),
+        lat: parseFloat(LAT.value),
+        lng: parseFloat(LNG.value),
+        phone: document.getElementById('f-phone').value.trim(),
+        whatsappNumber: document.getElementById('f-whatsapp').value.trim() || null,
+      }
+
+      const btn = document.getElementById('save-btn')
+      btn.disabled = true
+      btn.textContent = 'Saving…'
+      try {
+        if (!businessId) {
+          const { data } = await apiPost('/businesses', payload)
+          businessId = data.business.id
+        } else {
+          await apiPatch('/businesses/' + businessId, payload)
+        }
+
+        await apiPut('/businesses/' + businessId + '/hours', collectHours())
+
+        const rows = collectNewServices()
+        for (const row of rows) {
+          if (!row.name || row.price === '') continue
+          let serviceId = row.id
+          if (row.id) {
+            await apiPatch('/services/' + row.id, { name: row.name, price: parseFloat(row.price) })
+          } else {
+            const { data } = await apiPost('/businesses/' + businessId + '/services', { name: row.name, price: parseFloat(row.price) })
+            serviceId = data.serviceItem.id
+          }
+          if (row.pendingFile) {
+            const fd = new FormData()
+            fd.append('photo', row.pendingFile)
+            await apiPost('/services/' + serviceId + '/photo', fd)
+          }
+        }
+
+        await uploadPendingPhotos()
+
+        window.location.href = 'dashboard.html'
+      } catch (err) {
+        showMessage(err.message || 'Save failed')
+        btn.disabled = false
+        btn.textContent = 'Save business'
+      }
+    }
+
+    document.getElementById('save-btn').addEventListener('click', submit)
+
+    async function load() {
+      await loadCategories()
+      if (businessId) {
+        await loadBusiness()
+      } else {
+        renderPhotos()
+        renderServices()
+        renderHours()
+        detectLocation()
+      }
+    }
+
+    load()
+  </script>
+</body>
+</html>

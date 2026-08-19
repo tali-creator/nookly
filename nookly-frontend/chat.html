@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="partials/icons.html"></div>
+  <main class="flex min-h-screen flex-col bg-background">
+    <header class="border-b border-border/70">
+      <div class="mx-auto flex h-20 max-w-4xl items-center justify-between px-5 lg:px-8">
+        <a href="index.html" class="flex items-center gap-2 text-sm text-muted-foreground"><svg class="size-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to browse</a>
+        <a href="index.html" class="font-mono text-xl font-bold">nookly</a>
+      </div>
+    </header>
+
+    <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col px-5 py-8 lg:px-8">
+      <div id="not-found" class="hidden rounded-2xl border border-dashed border-border py-20 text-center">
+        <h1 class="font-mono text-3xl font-bold">Business not found</h1>
+        <p class="mt-3 text-muted-foreground">We couldn't load this conversation.</p>
+        <a href="index.html" class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Back to browse</a>
+      </div>
+
+      <div id="chat-card" class="hidden flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        <div class="flex items-center gap-4 border-b border-border bg-primary p-5 text-primary-foreground">
+          <div id="owner-avatar" class="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-foreground/20 text-lg font-bold"></div>
+          <div class="min-w-0 flex-1">
+            <p id="chat-title" class="truncate font-mono font-bold">Chat with owner</p>
+            <p id="chat-subtitle" class="truncate text-sm text-primary-foreground/80"></p>
+          </div>
+          <span id="chat-status" class="shrink-0 rounded-full bg-primary-foreground/15 px-3 py-1 text-xs font-bold"></span>
+        </div>
+
+        <div id="messages" class="flex flex-1 flex-col gap-3 overflow-y-auto p-5" style="max-height: 56vh"></div>
+
+        <form id="message-form" class="flex items-center gap-3 border-t border-border p-4">
+          <input
+            id="message-input"
+            type="text"
+            autocomplete="off"
+            placeholder="Ask about availability, prices, or anything else…"
+            class="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
+          />
+          <button type="submit" class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:opacity-90" aria-label="Send message"><svg class="size-5" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></button>
+        </form>
+      </div>
+
+      <div id="loading" class="rounded-2xl border border-dashed border-border py-20 text-center text-muted-foreground">Loading conversation…</div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/device-id.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/include.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search)
+    const businessId = params.get('businessId')
+    const ownerId = params.get('ownerId')
+    const messagesEl = document.getElementById('messages')
+    const form = document.getElementById('message-form')
+    const input = document.getElementById('message-input')
+    const statusEl = document.getElementById('chat-status')
+    let conversationId = null
+    let business = null
+
+    async function resolveOwnerName() {
+      if (ownerId) {
+        try {
+          const { data } = await apiGet('/owners/' + ownerId)
+          const owner = data.owner || data
+          return owner.displayName || owner.name || owner.email || 'the owner'
+        } catch (err) {
+          if (err.status !== 404) console.warn('owner resolve failed', err)
+        }
+      }
+      return 'the owner'
+    }
+
+    function addMessage(text, isMine, isPending) {
+      const wrap = document.createElement('div')
+      wrap.className = 'flex ' + (isMine ? 'justify-end' : 'justify-start')
+      wrap.innerHTML = '<div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ' + (isMine ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm bg-muted text-foreground') + '">' + escapeHtml(text) + (isPending ? ' <span class="ml-1 opacity-60">…</span>' : '') + '</div>'
+      messagesEl.appendChild(wrap)
+      messagesEl.scrollTop = messagesEl.scrollHeight
+      return wrap
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = text
+    }
+
+    async function load() {
+      if (!businessId) { showNotFound(); return }
+      try {
+        const { data } = await apiGet('/businesses/' + businessId)
+        business = data.business
+        const ownerName = await resolveOwnerName()
+        document.getElementById('chat-title').textContent = ownerName
+        document.getElementById('chat-subtitle').textContent = business.name
+        const avatar = document.getElementById('owner-avatar')
+        avatar.textContent = initials(ownerName)
+        setStatus('Online')
+        document.getElementById('loading').classList.add('hidden')
+        const card = document.getElementById('chat-card')
+        card.classList.remove('hidden')
+        card.classList.add('flex')
+
+        try {
+          const c = await apiGet('/conversations/mine?businessId=' + businessId + '&deviceId=' + getDeviceId())
+          if (c.data && c.data.conversation) {
+            conversationId = c.data.conversation.id
+            const m = await apiGet('/conversations/' + conversationId + '/messages?deviceId=' + getDeviceId())
+            ;(m.data.messages || []).forEach((msg) => {
+              const mine = msg.senderType === 'CUSTOMER' || msg.senderDeviceId === getDeviceId()
+              addMessage(msg.text, mine, false)
+            })
+          }
+        } catch (err) {
+          if (err.status !== 404) console.warn('load messages failed', err)
+        }
+        input.focus()
+      } catch (err) {
+        if (err.status === 404) { showNotFound(); return }
+        console.error(err)
+        showNotFound()
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const text = input.value.trim()
+      if (!text || !businessId) return
+      input.value = ''
+      addMessage(text, true, true)
+      try {
+        let id = conversationId
+        if (!id) {
+          const res = await apiPost('/conversations', { businessId, deviceId: getDeviceId(), initialMessage: text })
+          conversationId = res.data.conversation.id
+          id = conversationId
+        } else {
+          await apiPost('/conversations/' + id + '/messages', { text, deviceId: getDeviceId() })
+        }
+        const last = messagesEl.lastElementChild
+        if (last) last.innerHTML = last.innerHTML.replace(' <span class="ml-1 opacity-60">…</span>', '')
+        setStatus('Online')
+      } catch (err) {
+        const last = messagesEl.lastElementChild
+        if (last) last.innerHTML = last.innerHTML.replace(' <span class="ml-1 opacity-60">…</span>', '')
+        if (err.status === 404 || err.status === 0) {
+          setStatus('Chat is coming soon')
+          return
+        }
+        setStatus('Could not send — try again')
+      }
+    })
+
+    function showNotFound() {
+      document.getElementById('loading').classList.add('hidden')
+      document.getElementById('not-found').classList.remove('hidden')
+    }
+
+    load()
+  </script>
+</body>
+</html>

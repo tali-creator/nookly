@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listing analytics — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body data-page="owner" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="../partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="../partials/header-marketplace.html"></div>
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="../partials/sidebar-marketplace.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your Nookly</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]">Listing analytics</h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">A simple snapshot of how customers are discovering your business.</p>
+        </div>
+        <div class="flex flex-col gap-6">
+          <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <p class="text-sm text-muted-foreground" id="analytics-title">Loading analytics…</p>
+            <div class="flex overflow-hidden rounded-xl border border-border">
+              <button data-period="7d" class="period-btn px-4 py-2 text-sm font-bold">7 days</button>
+              <button data-period="30d" class="period-btn bg-primary/15 px-4 py-2 text-sm font-bold text-primary">30 days</button>
+              <button data-period="all" class="period-btn px-4 py-2 text-sm font-bold">All time</button>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <div><p class="text-sm text-muted-foreground" id="chart-caption"></p><h2 class="mt-2 font-mono text-3xl font-bold"><span id="chart-total">0</span> profile views</h2></div>
+            </div>
+            <div class="mt-8 flex h-48 items-end gap-1" id="chart-bars"></div>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-2xl border border-border bg-card p-5"><svg class="size-5 text-primary" aria-hidden="true"><use href="#i-eye"/></svg><p class="mt-6 text-2xl font-bold" id="stat-views">0</p><p class="text-sm text-muted-foreground">Profile views</p></div>
+            <div class="rounded-2xl border border-border bg-card p-5"><svg class="size-5 text-primary" aria-hidden="true"><use href="#i-phone"/></svg><p class="mt-6 text-2xl font-bold" id="stat-calls">0</p><p class="text-sm text-muted-foreground">Calls</p></div>
+            <div class="rounded-2xl border border-border bg-card p-5"><svg class="size-5 text-primary" aria-hidden="true"><use href="#i-message-circle"/></svg><p class="mt-6 text-2xl font-bold" id="stat-whatsapp">0</p><p class="text-sm text-muted-foreground">WhatsApp clicks</p></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/helpers.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/include.js"></script>
+  <script>
+    if (requireOwner()) throw new Error('redirecting')
+
+    const businessId = new URLSearchParams(window.location.search).get('id')
+    let period = '30d'
+    const bars = document.getElementById('chart-bars')
+
+    function renderChart(analytics) {
+      const total = analytics.profileViews
+      document.getElementById('chart-total').textContent = total.toLocaleString()
+      document.getElementById('stat-views').textContent = analytics.profileViews.toLocaleString()
+      document.getElementById('stat-calls').textContent = analytics.contactCalls.toLocaleString()
+      document.getElementById('stat-whatsapp').textContent = analytics.contactWhatsapp.toLocaleString()
+      document.getElementById('chart-caption').textContent = period === 'all' ? 'All time' : 'Last ' + period.replace('d', ' days')
+
+      const daily = analytics.daily || []
+      bars.innerHTML = ''
+      if (!daily.length) {
+        bars.innerHTML = '<p class="w-full text-center text-sm text-muted-foreground">No views yet in this period.</p>'
+        return
+      }
+      const max = Math.max.apply(null, daily.map((d) => d.profileViews).concat([1]))
+      daily.forEach((d) => {
+        const el = document.createElement('div')
+        el.className = 'flex-1 rounded-t bg-primary/70'
+        el.style.height = Math.max(4, Math.round((d.profileViews / max) * 100)) + '%'
+        el.title = d.date + ': ' + d.profileViews + ' views'
+        bars.appendChild(el)
+      })
+    }
+
+    async function load() {
+      if (!businessId) {
+        document.getElementById('analytics-title').textContent = 'No business selected. Open Analytics from a listing.'
+        return
+      }
+      document.getElementById('analytics-title').textContent = 'Loading analytics…'
+      try {
+        const { data } = await apiGet('/businesses/' + businessId + '/analytics?period=' + period)
+        document.getElementById('analytics-title').textContent = 'Live analytics'
+        renderChart(data)
+      } catch (err) {
+        document.getElementById('analytics-title').textContent = 'Could not load analytics.'
+      }
+    }
+
+    document.querySelectorAll('.period-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        period = btn.dataset.period
+        document.querySelectorAll('.period-btn').forEach((b) => b.classList.remove('bg-primary/15', 'text-primary'))
+        btn.classList.add('bg-primary/15', 'text-primary')
+        load()
+      })
+    })
+
+    load()
+  </script>
+</body>
+</html>

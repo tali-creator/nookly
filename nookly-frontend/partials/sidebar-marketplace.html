@@ -1,0 +1,32 @@
+<!-- Customer marketplace sidebar -->
+<aside class="flex gap-2 overflow-x-auto lg:flex-col">
+  <div class="mb-3 hidden rounded-2xl bg-primary/10 p-4 lg:block">
+    <p class="text-xs font-semibold uppercase tracking-wider text-primary-deep">Nookly workspace</p>
+    <p class="mt-2 font-bold text-primary-deep" id="workspace-name">Guest</p>
+    <p class="text-sm text-primary-deep/80" id="workspace-role">Not signed in</p>
+  </div>
+  <a href="/dashboard.html" data-nav-key="dashboard" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-layout-dashboard"/></svg>Dashboard
+  </a>
+  <a href="/favorites.html" data-nav-key="favorites" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-heart"/></svg>Favorites
+  </a>
+  <a href="/owner/dashboard.html" data-nav-key="owner" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-store"/></svg>My businesses
+  </a>
+  <a href="/owner/messages.html" data-nav-key="messages" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-message-circle"/></svg>Messages
+  </a>
+  <a href="/owner/kyc.html" data-nav-key="kyc" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-shield-check"/></svg>Verification
+  </a>
+  <a href="/notifications.html" data-nav-key="notifications" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-bell"/></svg>Notifications
+  </a>
+  <a href="/profile.html" data-nav-key="profile" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-user-round"/></svg>Profile
+  </a>
+  <button class="sign-out hidden items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted lg:flex">
+    <svg class="size-4" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out
+  </button>
+</aside>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owner — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="partials/icons.html"></div>
+  <main class="min-h-screen bg-background">
+    <header class="border-b border-border/70">
+      <div class="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 lg:px-8">
+        <a href="index.html" class="font-mono text-xl font-bold">nookly</a>
+        <a href="index.html" class="flex items-center gap-2 text-sm text-muted-foreground"><svg class="size-4" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to browse</a>
+      </div>
+    </header>
+    <div class="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
+      <div id="page-body" class="hidden">
+        <div class="flex flex-col gap-6 rounded-[2rem] border border-border bg-card p-6 sm:flex-row sm:items-center sm:p-10">
+          <div id="owner-avatar" class="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-4xl font-bold text-primary"></div>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-3">
+              <h1 id="owner-name" class="font-mono text-3xl font-bold tracking-[-.05em] sm:text-4xl"></h1>
+              <span id="verified-badge" class="hidden items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary"><svg class="size-4" aria-hidden="true"><use href="#i-shield-check"/></svg>Verified owner</span>
+            </div>
+            <p id="owner-meta" class="mt-2 text-sm text-muted-foreground"></p>
+            <p id="owner-bio" class="mt-4 max-w-2xl leading-relaxed text-muted-foreground"></p>
+            <div id="owner-contact" class="mt-5 flex flex-wrap gap-3"></div>
+          </div>
+        </div>
+
+        <div class="mt-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Their services</p>
+            <h2 class="font-mono text-2xl font-bold tracking-[-0.05em]">Businesses by this owner</h2>
+          </div>
+        </div>
+        <div id="owner-businesses" class="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3"></div>
+      </div>
+      <div id="loading" class="rounded-2xl border border-dashed border-border py-20 text-center text-muted-foreground">Loading owner profile…</div>
+      <div id="not-found" class="hidden rounded-2xl border border-dashed border-border py-20 text-center">
+        <h1 class="font-mono text-3xl font-bold">Owner not found</h1>
+        <p class="mt-3 text-muted-foreground">This owner may have been removed or is not yet live.</p>
+        <a href="index.html" class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Back to browse</a>
+      </div>
+      <div id="error-state" class="hidden rounded-2xl border border-dashed border-border py-20 text-center">
+        <h1 class="font-mono text-3xl font-bold">Something went wrong</h1>
+        <p id="error-msg" class="mt-3 text-muted-foreground"></p>
+        <a href="index.html" class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Back to browse</a>
+      </div>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/device-id.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/include.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search)
+    const ownerId = params.get('id')
+    const businessId = params.get('businessId')
+
+    async function resolveOwnerId() {
+      if (ownerId) return ownerId
+      if (businessId) {
+        const { data } = await apiGet('/businesses/' + businessId)
+        return data.business.ownerId
+      }
+      return null
+    }
+
+    function renderOwner(owner) {
+      const avatar = document.getElementById('owner-avatar')
+      const avatarUrl = imageUrl(owner.avatarUrl)
+      if (avatarUrl) {
+        avatar.innerHTML = '<img src="' + avatarUrl + '" alt="" class="size-full rounded-2xl object-cover" />'
+      } else {
+        avatar.textContent = initials(owner.displayName || owner.name || owner.email || '?')
+      }
+
+      document.getElementById('owner-name').textContent = owner.displayName || owner.name || owner.email
+      document.getElementById('owner-meta').textContent = 'Business owner' + (owner.joinedLabel ? ' · ' + owner.joinedLabel : '')
+
+      const verified = owner.kycStatus === 'VERIFIED' || owner.isVerified
+      const badge = document.getElementById('verified-badge')
+      if (verified) {
+        badge.classList.remove('hidden')
+        badge.classList.add('inline-flex')
+      }
+
+      const bio = document.getElementById('owner-bio')
+      if (owner.bio) bio.textContent = owner.bio
+
+      const contact = document.getElementById('owner-contact')
+      const phone = owner.phone || ''
+      const whatsapp = owner.whatsappNumber || null
+      const parts = []
+      if (phone) {
+        const a = document.createElement('a')
+        a.href = 'tel:' + phone.replace(/[^\d+]/g, '')
+        a.className = 'flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground'
+        a.innerHTML = '<svg class="size-4" aria-hidden="true"><use href="#i-phone"/></svg>Call'
+        parts.push(a)
+      }
+      if (whatsapp) {
+        const a = document.createElement('a')
+        a.href = 'https://wa.me/' + whatsapp.replace(/[^\d]/g, '')
+        a.target = '_blank'
+        a.rel = 'noopener'
+        a.className = 'flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold'
+        a.innerHTML = '<svg class="size-4" aria-hidden="true"><use href="#i-message-circle"/></svg>WhatsApp'
+        parts.push(a)
+      }
+      contact.innerHTML = ''
+      parts.forEach((el) => contact.appendChild(el))
+    }
+
+    async function load() {
+      let resolvedOwnerId
+      try {
+        resolvedOwnerId = await resolveOwnerId()
+      } catch (err) {
+        if (err.status === 404) { showNotFound(); return }
+        showError(err)
+        return
+      }
+      if (!resolvedOwnerId) { showNotFound(); return }
+
+      let res
+      try {
+        res = await apiGet('/owners/' + resolvedOwnerId)
+      } catch (err) {
+        if (err.status === 404) { showComingSoon(resolvedOwnerId); return }
+        showError(err)
+        return
+      }
+
+      const data = res.data
+      const owner = data.owner || data
+      const businesses = (data.businesses || []).filter((b) => b.status === 'APPROVED' || b.status === undefined)
+
+      renderOwner(owner)
+      document.title = (owner.displayName || owner.name || 'Owner') + ' — Nookly'
+
+      const grid = document.getElementById('owner-businesses')
+      if (!businesses.length) {
+        grid.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">No businesses listed yet.</div>'
+      } else {
+        businesses.forEach((b) => grid.appendChild(renderBusinessCard(b)))
+      }
+
+      document.getElementById('loading').classList.add('hidden')
+      document.getElementById('page-body').classList.remove('hidden')
+
+      // Count this visit on the owner's profile — unless the owner themselves
+      // is the one looking at their own profile.
+      const me = getUser()
+      const isSelf = me && me.id === resolvedOwnerId
+      if (!isSelf) {
+        apiPost('/owners/' + resolvedOwnerId + '/visits', { deviceId: getDeviceId() }).catch(() => {})
+      }
+    }
+
+    function showNotFound() {
+      document.getElementById('loading').classList.add('hidden')
+      document.getElementById('not-found').classList.remove('hidden')
+    }
+
+    function showComingSoon(ownerId) {
+      document.getElementById('loading').classList.add('hidden')
+      const el = document.getElementById('not-found')
+      el.querySelector('h1').textContent = 'Owner profile coming soon'
+      el.querySelector('p').textContent =
+        'The public owner profile for this listing is being prepared. This screen will show the owner\u2019s details and all their businesses.'
+      const back = el.querySelector('a')
+      if (businessId) {
+        back.textContent = 'View this business'
+        back.href = 'business.html?id=' + businessId
+      } else {
+        back.textContent = 'Back to browse'
+        back.href = 'index.html'
+      }
+      el.classList.remove('hidden')
+    }
+
+    function showError(err) {
+      document.getElementById('loading').classList.add('hidden')
+      document.getElementById('error-msg').textContent = err.message || 'Please try again.'
+      document.getElementById('error-state').classList.remove('hidden')
+    }
+
+    load()
+  </script>
+</body>
+</html>

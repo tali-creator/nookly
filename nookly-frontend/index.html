@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en" class="bg-background">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nookly — Get more done. Live a little.</title>
+    <meta
+      name="description"
+      content="Find trusted local pros for the things on your to-do list."
+    />
+    <link rel="icon" type="image/svg+xml" href="public/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased">
+    <div data-include="partials/icons.html"></div>
+
+    <main class="min-h-screen bg-background text-foreground">
+      <header
+        class="relative z-20 border-b border-border/70 bg-background/95 backdrop-blur"
+      >
+        <div
+          class="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8"
+        >
+          <a
+            href="#top"
+            class="flex items-center gap-2.5"
+            aria-label="Nookly home"
+          >
+            <span
+              class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"
+              ><svg class="size-5" aria-hidden="true">
+                <use href="#i-sparkles" /></svg
+            ></span>
+            <span class="font-mono text-xl font-bold tracking-tight"
+              >nookly</span
+            >
+          </a>
+          <nav
+            class="hidden items-center gap-8 md:flex"
+            aria-label="Main navigation"
+          >
+            <a
+              href="#services"
+              class="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              >Browse services</a
+            >
+            <a
+              href="#how-it-works"
+              class="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              >How it works</a
+            >
+            <a
+              href="#become-a-pro"
+              class="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              >Become a pro</a
+            >
+          </nav>
+          <div class="hidden items-center gap-3 sm:flex">
+            <div class="relative hidden" data-notif-root id="index-notif">
+              <button
+                class="rounded-full p-2.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                data-notif-bell
+                aria-label="Notifications"
+              >
+                <svg class="size-5" aria-hidden="true">
+                  <use href="#i-bell" />
+                </svg>
+              </button>
+            </div>
+            <div id="desktop-auth" class="hidden items-center gap-3 sm:flex">
+              <a
+                href="login.html"
+                class="rounded-full border border-border px-4 py-2.5 text-sm font-semibold transition hover:bg-muted"
+                >Log in</a
+              >
+              <a
+                href="signup.html"
+                class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                >Sign up</a
+              >
+            </div>
+            <a
+              id="desktop-dashboard"
+              href="#"
+              class="hidden items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+              ><svg class="size-4" aria-hidden="true"><use href="#i-layout-dashboard"/></svg>Dashboard</a
+            >
+          </div>
+          <button
+            class="rounded-lg p-2 md:hidden"
+            data-menu-toggle
+            aria-label="Open menu"
+          >
+            <svg class="size-5" data-menu-open-icon aria-hidden="true">
+              <use href="#i-menu" />
+            </svg>
+          </button>
+        </div>
+        <div
+          class="hidden border-t border-border bg-background px-5 py-5 md:hidden"
+          id="mobile-nav"
+        >
+          <nav class="flex flex-col gap-5 text-sm font-medium">
+            <a href="#services" data-menu-close>Browse services</a>
+            <a href="#how-it-works" data-menu-close>How it works</a>
+            <a href="#become-a-pro" data-menu-close>Become a pro</a>
+            <div id="mobile-auth" class="flex flex-col gap-3">
+              <a
+                href="login.html"
+                class="rounded-full bg-primary px-5 py-3 text-center text-white"
+                >Log in / Sign up</a
+              >
+            </div>
+            <a
+              id="mobile-dashboard"
+              href="#"
+              data-menu-close
+              class="hidden items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-center text-white"
+              ><svg class="size-4" aria-hidden="true"><use href="#i-layout-dashboard"/></svg>Dashboard</a
+            >
+          </nav>
+        </div>
+      </header>
+
+      <section
+        id="top"
+        class="relative mx-auto max-w-7xl px-5 pb-16 pt-14 lg:px-8 lg:pb-24 lg:pt-24"
+      >
+        <div
+          class="grid items-center gap-14 lg:grid-cols-[1.05fr_.95fr] lg:gap-10"
+        >
+          <div class="max-w-2xl">
+            <div
+              class="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary"
+            >
+              <span class="size-1.5 rounded-full bg-primary"></span>Your
+              neighborhood, sorted
+            </div>
+            <h1
+              class="text-balance font-mono text-5xl font-bold leading-[1.03] tracking-[-0.07em] sm:text-6xl lg:text-7xl"
+            >
+              Get more done.<br /><span class="text-primary"
+                >Live a little.</span
+              >
+            </h1>
+            <p
+              class="mt-6 max-w-lg text-pretty text-lg leading-relaxed text-muted-foreground"
+            >
+              Find trusted local pros for the things on your to-do list — from a
+              quick fix to a full day of help.
+            </p>
+            <div
+              class="mt-9 flex max-w-xl flex-col gap-2 rounded-2xl border border-border bg-card p-2 shadow-[0_18px_50px_-28px_rgba(20,35,10,.35)]"
+            >
+              <label
+                class="flex flex-1 items-center gap-3 rounded-xl bg-muted/60 px-4 py-3"
+                ><svg class="size-5 text-muted-foreground" aria-hidden="true">
+                  <use href="#i-search" /></svg
+                ><input
+                  id="search-input"
+                  type="text"
+                  placeholder="What do you need help with?"
+                  class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  aria-label="Search for a service"
+              /></label>
+              <label
+                class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-muted-foreground sm:max-w-44"
+                ><svg class="size-5 shrink-0 text-primary" aria-hidden="true">
+                  <use href="#i-map-pin" /></svg
+                ><input
+                  id="location-input"
+                  type="text"
+                  value="Lekki, Lagos"
+                  class="min-w-0 bg-transparent font-medium text-foreground outline-none"
+                  aria-label="Location"
+              /></label>
+              <button
+                id="find-help"
+                class="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
+              >
+                Find help
+              </button>
+            </div>
+            <div
+              class="mt-6 flex items-center gap-3 text-sm text-muted-foreground"
+            >
+              <div class="flex -space-x-2">
+                <span
+                  class="flex size-7 items-center justify-center rounded-full border-2 border-background bg-[#e3b8a0] text-[10px] font-bold"
+                  >OA</span
+                >
+                <span
+                  class="flex size-7 items-center justify-center rounded-full border-2 border-background bg-[#cad9b2] text-[10px] font-bold"
+                  >KM</span
+                >
+                <span
+                  class="flex size-7 items-center justify-center rounded-full border-2 border-background bg-[#b9cbe0] text-[10px] font-bold"
+                  >TD</span
+                >
+              </div>
+              <span
+                ><strong class="text-foreground">2,000+</strong> people found
+                help this month</span
+              >
+            </div>
+          </div>
+          <div class="relative mx-auto w-full max-w-[520px] lg:ml-auto">
+            <div
+              class="relative aspect-[1.02] overflow-hidden rounded-[2rem] bg-[#dcebc9]"
+              id="service-showcase"
+            >
+              <div
+                class="flex h-full"
+                id="showcase-track"
+                style="transition: transform 0.8s ease"
+              ></div>
+              <div
+                class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5"
+                id="showcase-dots"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="services"
+        class="border-y border-border/70 px-5 py-14 lg:px-8 lg:py-20"
+      >
+        <div class="mx-auto max-w-7xl">
+          <div
+            class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"
+          >
+            <div>
+              <p
+                class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-primary"
+              >
+                Start here
+              </p>
+              <h2 class="font-mono font-bold tracking-[-0.05em] sm:text-4xl">
+                What can we help with?
+              </h2>
+            </div>
+            <button
+              class="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            >
+              See all categories
+              <svg class="size-4" aria-hidden="true">
+                <use href="#i-arrow-right" />
+              </svg>
+            </button>
+          </div>
+          <div
+            class="mt-8 min-h-30 h-full grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+            id="category-grid"
+          ></div>
+        </div>
+      </section>
+
+      <section
+        id="providers"
+        class="mx-auto max-w-7xl px-5 py-14 lg:px-8 lg:py-20"
+      >
+        <div
+          class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
+        >
+          <div>
+            <p
+              class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-primary"
+              id="near-label"
+            >
+              Near you
+            </p>
+            <h2
+              class="font-mono text-3xl font-bold tracking-[-0.05em] sm:text-4xl"
+            >
+              Popular in your area
+            </h2>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Sort by</span
+            ><button
+              class="flex items-center gap-1 font-semibold text-foreground"
+            >
+              Recommended
+              <svg class="size-4" aria-hidden="true">
+                <use href="#i-chevron-down" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div
+          class="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+          id="provider-grid"
+        ></div>
+      </section>
+
+      <section
+        id="how-it-works"
+        class="bg-primary px-5 py-16 text-primary-foreground lg:px-8 lg:py-20"
+      >
+        <div
+          class="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[.9fr_1.1fr] lg:items-center"
+        >
+          <div>
+            <p
+              class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-white opacity-70"
+            >
+              Simple by design
+            </p>
+            <h2
+              class="max-w-md font-mono text-4xl font-bold leading-tight tracking-[-0.06em] text-white sm:text-5xl"
+            >
+              Good help should feel easy.
+            </h2>
+            <p class="mt-5 max-w-md leading-relaxed text-white opacity-80">
+              From your first search to the final high-five, Nookly keeps the
+              whole experience clear, human, and on your terms.
+            </p>
+          </div>
+          <div class="grid gap-8 sm:grid-cols-3">
+            <div class="border-t border-primary-foreground/25 pt-5">
+              <span
+                class="flex size-10 items-center justify-center rounded-xl bg-primary-foreground/15"
+                ><svg class="size-5" aria-hidden="true">
+                  <use href="#i-search" /></svg
+              ></span>
+              <p class="mt-5 font-bold text-white">Tell us what you need</p>
+              <p class="mt-2 text-sm leading-relaxed text-white opacity-70">
+                Describe the job and your preferred time.
+              </p>
+              <span class="mt-5 block font-mono text-sm text-white opacity-50">01</span>
+            </div>
+            <div class="border-t border-primary-foreground/25 pt-5">
+              <span
+                class="flex size-10 items-center justify-center rounded-xl bg-primary-foreground/15"
+                ><svg class="size-5" aria-hidden="true">
+                  <use href="#i-users" /></svg
+              ></span>
+              <p class="mt-5 font-bold text-white">Choose your pro</p>
+              <p class="mt-2 text-sm leading-relaxed text-white opacity-70">
+                Compare real profiles, reviews, and prices.
+              </p>
+              <span class="mt-5 block font-mono text-sm text-white opacity-50">02</span>
+            </div>
+            <div class="border-t border-primary-foreground/25 pt-5">
+              <span
+                class="flex size-10 items-center justify-center rounded-xl bg-primary-foreground/15"
+                ><svg class="size-5" aria-hidden="true">
+                  <use href="#i-check" /></svg
+              ></span>
+              <p class="mt-5 font-bold text-white">Get it done</p>
+              <p class="mt-2 text-sm leading-relaxed text-white opacity-70">
+                Book confidently and enjoy your free time.
+              </p>
+              <span class="mt-5 block font-mono text-sm text-white opacity-50">03</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer
+        id="become-a-pro"
+        class="border-t border-border px-5 py-8 lg:px-8"
+      >
+        <div
+          class="mx-auto flex max-w-7xl flex-col justify-between gap-5 text-sm text-muted-foreground sm:flex-row sm:items-center"
+        >
+          <div
+            class="flex items-center gap-2 font-mono font-bold text-foreground"
+          >
+            <span
+              class="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+              ><svg class="size-4" aria-hidden="true">
+                <use href="#i-sparkles" /></svg></span
+            >nookly
+          </div>
+          <div class="flex flex-wrap gap-x-6 gap-y-2">
+            <a href="#how-it-works" class="hover:text-foreground"
+              >About Nookly</a
+            ><a href="#become-a-pro" class="hover:text-foreground"
+              >Become a pro</a
+            ><a href="#top" class="hover:text-foreground">Help center</a>
+          </div>
+          <p>© 2026 Nookly</p>
+        </div>
+      </footer>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/device-id.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/cards.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/include.js"></script>
+    <script>
+      /* Header state: swap the Log in / Sign up buttons for a Dashboard link
+         when the visitor already has a session. Runs on every landing-page
+         visit, so a returning signed-in user lands straight on the dashboard. */
+      const sessionUser = getUser()
+      if (sessionUser && sessionUser.id) {
+        const dash = sessionUser.role === 'ADMIN' ? '/admin/dashboard.html' : '/owner/dashboard.html'
+        const desktopDash = document.getElementById('desktop-dashboard')
+        const desktopAuth = document.getElementById('desktop-auth')
+        const mobileDash = document.getElementById('mobile-dashboard')
+        const mobileAuth = document.getElementById('mobile-auth')
+        desktopDash.href = dash
+        desktopDash.style.display = 'inline-flex'
+        desktopAuth.style.display = 'none'
+        mobileDash.href = dash
+        mobileDash.style.display = 'flex'
+        mobileAuth.style.display = 'none'
+        const indexNotif = document.getElementById('index-notif')
+        if (indexNotif) indexNotif.style.display = 'block'
+      }
+
+      const categoryGrid = document.getElementById("category-grid");
+      const providerGrid = document.getElementById("provider-grid");
+      const nearLabel = document.getElementById("near-label");
+      const locationInput = document.getElementById("location-input");
+      const searchInput = document.getElementById("search-input");
+      const findHelp = document.getElementById("find-help");
+
+      const state = {
+        lat: null,
+        lng: null,
+        categoryId: null,
+        q: "",
+        locationReady: false,
+      };
+
+      const CATEGORY_GLYPHS = ["✦", "⌁", "↗", "⌂", "▱", "✳"];
+      const CATEGORY_TONES = [
+        "bg-[#e9f6d0]",
+        "bg-[#fce8d7]",
+        "bg-[#e4eefb]",
+        "bg-[#f7e3ee]",
+        "bg-[#e7edf0]",
+        "bg-[#f5edc8]",
+      ];
+      // Category tiles use real photos (dark gradient base + white label) when
+      // an image exists for the category; unknown categories fall back to the
+      // glyph/tone style so the grid never breaks.
+      const CATEGORY_IMAGES = {
+        "health & wellness": "/public/images/health-and-wellness.png",
+        "professional services": "/public/images/profession-services.png",
+        "repairs & maintenance": "/public/images/repairs-and-maintainance.png",
+        "restaurants & food": "/public/images/resturants-and-food.png",
+        "retail & shops": "/public/images/retail-and-shop.png",
+        "salons & beauty": "/public/images/salons-and-beauty.png",
+      };
+      const CATEGORY_DESCRIPTIONS = {
+        "health & wellness":
+          "Doctors, therapists and wellness pros for every need.",
+        "professional services":
+          "Accountants, legal and business experts on call.",
+        "repairs & maintenance":
+          "Handymen and technicians who fix it fast.",
+        "restaurants & food": "Chefs, caterers and food vendors on demand.",
+        "retail & shops": "Local boutiques and shops worth discovering.",
+        "salons & beauty": "Stylists and beauty experts for your best look.",
+      };
+
+      function locationMessage(text, isError) {
+        let el = document.getElementById("location-msg");
+        if (!el) {
+          el = document.createElement("p");
+          el.id = "location-msg";
+          el.className =
+            "mt-3 rounded-xl border px-4 py-3 text-sm font-semibold";
+          findHelp.closest("div").appendChild(el);
+        }
+        el.className =
+          "mt-3 rounded-xl border px-4 py-3 text-sm font-semibold " +
+          (isError
+            ? "border-destructive/30 text-destructive"
+            : "border-primary/20 bg-primary/10 text-primary");
+        el.textContent = text;
+      }
+
+      async function loadCategories() {
+        try {
+          const { data } = await apiGet("/categories");
+          buildShowcase(data.categories);
+          data.categories.forEach((category, i) => {
+            const btn = document.createElement("button");
+            btn.dataset.categoryId = category.id;
+            const img =
+              CATEGORY_IMAGES[(category.name || "").toLowerCase().trim()];
+            if (img) {
+              btn.className =
+                "relative flex aspect-[1.55/1] flex-col justify-end overflow-hidden rounded-2xl p-0 text-left transition hover:-translate-y-1 hover:shadow-md";
+              btn.innerHTML =
+                '<img src="' +
+                img +
+                '" alt="" class="absolute inset-0 h-full w-full object-cover" /><span class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></span><span class="relative px-4 pb-3 pt-6 text-sm font-bold leading-tight text-white">' +
+                escapeHtml(category.name) +
+                "</span>";
+            } else {
+              btn.className =
+                "flex min-h-32 flex-col justify-between rounded-2xl p-4 text-left transition hover:-translate-y-1 hover:shadow-md " +
+                CATEGORY_TONES[i % CATEGORY_TONES.length];
+              btn.innerHTML =
+                '<span class="text-2xl font-bold">' +
+                CATEGORY_GLYPHS[i % CATEGORY_GLYPHS.length] +
+                '</span><span class="text-sm font-bold leading-tight">' +
+                escapeHtml(category.name) +
+                "</span>";
+            }
+            btn.addEventListener("click", () => {
+              state.categoryId =
+                state.categoryId === category.id ? null : category.id;
+              renderCategories();
+              loadProviders();
+            });
+            categoryGrid.appendChild(btn);
+          });
+        } catch (err) {
+          categoryGrid.innerHTML =
+            '<div class="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground sm:col-span-3">Could not load categories.</div>';
+          console.error(err);
+        }
+      }
+
+      let showcaseIndex = 0;
+      let showcaseTimer = null;
+      function buildShowcase(categories) {
+        const track = document.getElementById("showcase-track");
+        const dotsWrap = document.getElementById("showcase-dots");
+        if (!track || !dotsWrap) return;
+        track.innerHTML = "";
+        dotsWrap.innerHTML = "";
+        const withImage = categories.filter((c) => {
+          const img =
+            CATEGORY_IMAGES[(c.name || "").toLowerCase().trim()];
+          return img;
+        });
+        withImage.forEach((category, i) => {
+          const img =
+            CATEGORY_IMAGES[(category.name || "").toLowerCase().trim()];
+          const desc =
+            CATEGORY_DESCRIPTIONS[(category.name || "").toLowerCase().trim()] ||
+            "Verified local pros near you.";
+          const slide = document.createElement("div");
+          slide.className = "relative h-full w-full shrink-0";
+          slide.innerHTML =
+            '<img src="' +
+            img +
+            '" alt="' +
+            escapeHtml(category.name) +
+            '" class="absolute inset-0 h-full w-full object-cover" />' +
+            '<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pb-6 pl-6 pr-16 pt-14">' +
+            '<p class="text-lg font-bold leading-tight text-white">' +
+            escapeHtml(category.name) +
+            '</p><p class="mt-1 text-sm leading-snug text-white/90">' +
+            escapeHtml(desc) +
+            "</p></div>";
+          track.appendChild(slide);
+          const dot = document.createElement("button");
+          dot.type = "button";
+          dot.className =
+            "h-1.5 rounded-full bg-white/40 transition-all duration-300 " +
+            (i === 0 ? "w-6 bg-white" : "w-1.5");
+          dot.setAttribute("aria-label", "Go to slide " + (i + 1));
+          dot.addEventListener("click", () => goToSlide(i, true));
+          dotsWrap.appendChild(dot);
+        });
+        if (withImage.length > 1) {
+          clearInterval(showcaseTimer);
+          showcaseTimer = setInterval(() => goToSlide(showcaseIndex + 1, false), 10000);
+        }
+      }
+      function goToSlide(index, userInitiated) {
+        const track = document.getElementById("showcase-track");
+        const dotsWrap = document.getElementById("showcase-dots");
+        if (!track || !track.children.length) return;
+        showcaseIndex = ((index % track.children.length) + track.children.length) % track.children.length;
+        track.style.transform = "translateX(-" + showcaseIndex * 100 + "%)";
+        Array.from(dotsWrap.children).forEach((dot, i) => {
+          dot.className =
+            "h-1.5 rounded-full transition-all duration-300 " +
+            (i === showcaseIndex ? "w-6 bg-white" : "w-1.5 bg-white/40");
+        });
+        if (userInitiated && showcaseTimer) {
+          clearInterval(showcaseTimer);
+          showcaseTimer = setInterval(
+            () => goToSlide(showcaseIndex + 1, false),
+            10000,
+          );
+        }
+      }
+
+      function renderCategories() {
+        categoryGrid.querySelectorAll("button").forEach((btn) => {
+          if (btn.dataset.categoryId === state.categoryId) {
+            btn.classList.add(
+              "ring-2",
+              "ring-primary",
+              "ring-offset-2",
+              "ring-offset-background",
+            );
+          } else {
+            btn.classList.remove(
+              "ring-2",
+              "ring-primary",
+              "ring-offset-2",
+              "ring-offset-background",
+            );
+          }
+        });
+      }
+
+      async function loadProviders() {
+        if (!state.locationReady) {
+          loadFeaturedProviders();
+          return;
+        }
+        providerGrid.innerHTML =
+          '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">Loading nearby businesses…</div>';
+        nearLabel.textContent = "Near you";
+        const params = new URLSearchParams({
+          lat: state.lat,
+          lng: state.lng,
+          radius: SEARCH_RADIUS_KM,
+          page: 1,
+          limit: 20,
+        });
+        if (state.categoryId) params.set("category", state.categoryId);
+        if (state.q) params.set("q", state.q);
+        try {
+          const { data } = await apiGet(
+            "/businesses/nearby?" + params.toString(),
+          );
+          if (data.data && data.data.length) {
+            renderProviders(data.data);
+          } else {
+            loadFeaturedProviders();
+          }
+        } catch (err) {
+          providerGrid.innerHTML =
+            '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">Could not load businesses. ' +
+            escapeHtml(err.message || "") +
+            "</div>";
+        }
+      }
+
+      async function loadFeaturedProviders() {
+        providerGrid.innerHTML =
+          '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">Loading verified businesses…</div>';
+        nearLabel.textContent = "Verified businesses";
+        try {
+          const params = new URLSearchParams({
+            lat: FALLBACK_LOCATION.lat,
+            lng: FALLBACK_LOCATION.lng,
+            radius: SEARCH_RADIUS_KM,
+            page: 1,
+            limit: 20,
+          });
+          const { data } = await apiGet(
+            "/businesses/nearby?" + params.toString(),
+          );
+          renderProviders(data.data);
+        } catch (err) {
+          providerGrid.innerHTML =
+            '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">Could not load businesses. ' +
+            escapeHtml(err.message || "") +
+            "</div>";
+        }
+      }
+
+      function renderProviders(items) {
+        providerGrid.innerHTML = "";
+        if (!items.length) {
+          providerGrid.innerHTML =
+            '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">No businesses match that search yet. Try another service.</div>';
+          return;
+        }
+        items.forEach((b) => providerGrid.appendChild(renderBusinessCard(b)));
+      }
+
+      function requestLocation() {
+        if (!navigator.geolocation) {
+          state.locationReady = false;
+          locationMessage(
+            "Location is unavailable. Enable location access to browse nearby businesses.",
+            true,
+          );
+          loadFeaturedProviders();
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            state.lat = pos.coords.latitude;
+            state.lng = pos.coords.longitude;
+            state.locationReady = true;
+            locationMessage(
+              "Showing businesses near your current location.",
+              false,
+            );
+            locationInput.value = "";
+            locationInput.placeholder = "Using your location";
+            loadProviders();
+          },
+          () => {
+            state.locationReady = false;
+            locationMessage(
+              "We need your location to show nearby businesses. Enter a city and it will be supported soon.",
+              true,
+            );
+            loadFeaturedProviders();
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+        );
+      }
+
+      let debounceTimer;
+      searchInput.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          state.q = searchInput.value.trim();
+          loadProviders();
+        }, 300);
+      });
+
+      findHelp.addEventListener("click", () => {
+        if (!state.locationReady) {
+          locationMessage(
+            "Please allow location access to search for nearby businesses.",
+            true,
+          );
+          return;
+        }
+        document
+          .getElementById("services")
+          .scrollIntoView({ behavior: "smooth" });
+      });
+
+      loadCategories();
+      requestLocation();
+    </script>
+  </body>
+</html>

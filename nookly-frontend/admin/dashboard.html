@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moderation dashboard — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body data-page="moderation" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="../partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="../partials/header-marketplace.html"></div>
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="../partials/sidebar-admin.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Admin console</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]">Moderation dashboard</h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Review businesses, KYC gates, and marketplace quality signals before listings go live.</p>
+        </div>
+        <div class="flex flex-col gap-6">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-2xl bg-primary p-5 text-primary-foreground"><p class="text-3xl font-bold" id="stat-pending">0</p><p class="mt-1 text-sm opacity-80">Pending listings</p></div>
+            <div class="rounded-2xl border border-border bg-card p-5"><p class="text-3xl font-bold" id="stat-approved">0</p><p class="mt-1 text-sm text-muted-foreground">Approved &amp; live</p></div>
+            <div class="rounded-2xl border border-border bg-card p-5"><p class="text-3xl font-bold" id="stat-suspended">0</p><p class="mt-1 text-sm text-muted-foreground">Suspended</p></div>
+          </div>
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <h2 class="font-mono text-xl font-bold">Business moderation queue</h2>
+              <div class="flex overflow-hidden rounded-xl border border-border">
+                <button data-status="PENDING" class="tab-btn bg-primary/15 px-3 py-2 text-xs font-bold text-primary">Pending</button>
+                <button data-status="APPROVED" class="tab-btn px-3 py-2 text-xs font-bold">Approved</button>
+                <button data-status="REJECTED" class="tab-btn px-3 py-2 text-xs font-bold">Rejected</button>
+                <button data-status="SUSPENDED" class="tab-btn px-3 py-2 text-xs font-bold">Suspended</button>
+              </div>
+            </div>
+            <div class="mt-4 flex flex-col gap-3" id="moderation-queue"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/helpers.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/include.js"></script>
+  <script>
+    if (requireAdmin()) throw new Error('redirecting')
+
+    let currentStatus = 'PENDING'
+
+    const STATUS_STYLES = {
+      PENDING: 'bg-amber-100 text-amber-800',
+      APPROVED: 'bg-primary/15 text-primary',
+      REJECTED: 'bg-red-100 text-red-700',
+      SUSPENDED: 'bg-muted text-muted-foreground',
+    }
+
+    function stat(id, n) {
+      document.getElementById(id).textContent = n.toLocaleString()
+    }
+
+    async function countAll() {
+      const counts = {}
+      const statuses = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']
+      for (const s of statuses) {
+        try {
+          const { data } = await apiGet('/admin/businesses?status=' + s + '&limit=1')
+          counts[s] = data.total
+        } catch { counts[s] = 0 }
+      }
+      stat('stat-pending', counts.PENDING)
+      stat('stat-approved', counts.APPROVED)
+      stat('stat-suspended', counts.SUSPENDED)
+    }
+
+    async function loadQueue() {
+      const queue = document.getElementById('moderation-queue')
+      queue.innerHTML = '<div class="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">Loading…</div>'
+      try {
+        const { data } = await apiGet('/admin/businesses?status=' + currentStatus + '&limit=100')
+        const items = data.data || []
+        queue.innerHTML = ''
+        if (!items.length) {
+          queue.innerHTML = '<div class="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">No ' + currentStatus.toLowerCase() + ' businesses.</div>'
+          return
+        }
+        items.forEach((b) => {
+          const div = document.createElement('div')
+          div.className = 'flex flex-col justify-between gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center'
+          const owner = b.owner ? b.owner.email : ''
+          const note = b.moderationNote ? '<p class="mt-1 text-xs text-muted-foreground"><strong class="text-red-600">Note:</strong> ' + escapeHtml(b.moderationNote) + '</p>' : ''
+          div.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap"><p class="font-semibold">${escapeHtml(b.name)}</p><span class="rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_STYLES[b.status]}">${b.status}</span>${b.isFeatured ? '<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">Featured</span>' : ''}</div>
+            <p class="text-sm text-muted-foreground">${escapeHtml(b.category ? b.category.name : '')} · ${escapeHtml(owner)}</p>${note}
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <a href="business.html?id=${b.id}" class="rounded-lg border border-border px-3 py-2 text-xs font-bold hover:border-primary">View</a>
+              ${b.status !== 'APPROVED' ? '<button class="act-approve rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Approve</button>' : ''}
+              ${b.status === 'APPROVED' ? '<button class="act-suspend rounded-lg border border-border px-3 py-2 text-xs font-bold">Suspend</button>' : ''}
+              ${b.status !== 'APPROVED' && b.status !== 'REJECTED' ? '<button class="act-reject rounded-lg border border-border px-3 py-2 text-xs font-bold">Reject</button>' : ''}
+              ${b.status === 'APPROVED' && !b.isFeatured ? '<button class="act-feature rounded-lg border border-border px-3 py-2 text-xs font-bold">Feature</button>' : ''}
+              ${b.isFeatured ? '<button class="act-unfeature rounded-lg border border-border px-3 py-2 text-xs font-bold">Unfeature</button>' : ''}
+            </div>`
+
+          div.querySelector('.act-approve')?.addEventListener('click', async () => {
+            try {
+              await apiPatch('/admin/businesses/' + b.id + '/approve')
+              loadQueue(); countAll()
+            } catch (err) { alert(err.message || 'Approve failed') }
+          })
+          div.querySelector('.act-reject')?.addEventListener('click', async () => {
+            const reason = prompt('Rejection reason (10+ characters):')
+            if (reason === null) return
+            try {
+              await apiPatch('/admin/businesses/' + b.id + '/reject', { reason })
+              loadQueue(); countAll()
+            } catch (err) { alert(err.message || 'Reject failed') }
+          })
+          div.querySelector('.act-suspend')?.addEventListener('click', async () => {
+            const reason = prompt('Suspension reason (10+ characters):')
+            if (reason === null) return
+            try {
+              await apiPatch('/admin/businesses/' + b.id + '/suspend', { reason })
+              loadQueue(); countAll()
+            } catch (err) { alert(err.message || 'Suspend failed') }
+          })
+          div.querySelector('.act-feature')?.addEventListener('click', async () => {
+            const days = prompt('Feature duration in days (blank for indefinite):')
+            const body = days && days.trim() !== '' ? { durationDays: parseInt(days, 10) } : {}
+            try {
+              await apiPatch('/admin/businesses/' + b.id + '/feature', body)
+              loadQueue()
+            } catch (err) { alert(err.message || 'Feature failed') }
+          })
+          div.querySelector('.act-unfeature')?.addEventListener('click', async () => {
+            try {
+              await apiPatch('/admin/businesses/' + b.id + '/unfeature')
+              loadQueue()
+            } catch (err) { alert(err.message || 'Unfeature failed') }
+          })
+
+          queue.appendChild(div)
+        })
+      } catch (err) {
+        queue.innerHTML = '<div class="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">Could not load the queue.</div>'
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        currentStatus = btn.dataset.status
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('bg-primary/15', 'text-primary'))
+        btn.classList.add('bg-primary/15', 'text-primary')
+        loadQueue()
+      })
+    })
+
+    countAll()
+    loadQueue()
+  </script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your profile — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="profile" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="partials/header-account.html"></div>
+    <div class="mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="partials/sidebar-account.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your Nookly</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]">Your profile</h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Keep your details current so customers and service providers know who they are working with.</p>
+        </div>
+        <p class="mb-6 hidden rounded-xl p-3 text-sm" id="message"></p>
+
+        <div class="flex flex-col gap-6">
+          <!-- Profile header -->
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <div class="flex flex-wrap items-center gap-4 border-b border-border pb-6">
+              <div class="relative">
+                <img id="profile-avatar" alt="Avatar" class="hidden size-20 rounded-full object-cover" />
+                <div class="flex size-20 items-center justify-center rounded-full bg-primary/20 font-mono text-2xl font-bold text-primary" id="profile-initials">G</div>
+                <button type="button" id="avatar-btn" class="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground" title="Change photo" aria-label="Change profile photo"><svg class="size-4" aria-hidden="true"><use href="#i-upload"/></svg></button>
+                <input id="f-avatar" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <h2 class="flex flex-wrap items-center gap-2 font-mono text-xl font-bold" id="profile-name">Guest</h2>
+                <p class="text-sm text-muted-foreground" id="profile-email">Not signed in</p>
+                <p class="mt-2 text-xs text-muted-foreground" id="profile-member-since">—</p>
+              </div>
+              <span class="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary" id="profile-role">—</span>
+            </div>
+
+            <!-- KYC status -->
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background p-4">
+              <div class="flex items-center gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><svg class="size-5" aria-hidden="true"><use href="#i-shield-check"/></svg></span>
+                <div>
+                  <p class="text-sm font-semibold">Verification</p>
+                  <p class="text-xs text-muted-foreground">Confirm your identity to list businesses</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span id="kyc-badge" class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold"></span>
+                <a href="/owner/kyc.html" class="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:border-primary" id="kyc-link">Manage</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editable profile -->
+          <form id="profile-form" class="rounded-2xl border border-border bg-card p-6">
+            <h3 class="mb-5 font-mono text-lg font-bold">Profile details</h3>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <label class="flex flex-col gap-2 text-sm font-semibold">Display name<input id="f-displayName" maxlength="120" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" /></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold">Email<input id="f-email" disabled class="rounded-xl border border-input bg-background px-4 py-3 font-normal opacity-60 outline-none" /></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
+                <span class="flex items-baseline justify-between">Bio<small class="font-normal text-muted-foreground" id="bio-count">0 / 300</small></span>
+                <textarea id="f-bio" rows="3" maxlength="300" placeholder="A short line about you — shown to customers and providers." class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"></textarea>
+              </label>
+              <label class="flex flex-col gap-2 text-sm font-semibold">Phone<input id="f-phone" placeholder="+234…" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" /></label>
+              <label class="flex flex-col gap-2 text-sm font-semibold">WhatsApp number<input id="f-whatsapp" placeholder="+234…" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" /></label>
+              <fieldset class="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
+                <legend class="mb-1">Preferred contact method</legend>
+                <div class="flex flex-wrap gap-3" id="contact-methods">
+                  <label class="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-normal"><input type="radio" name="contactMethod" value="PHONE" /> Phone</label>
+                  <label class="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-normal"><input type="radio" name="contactMethod" value="WHATSAPP" /> WhatsApp</label>
+                  <label class="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-normal"><input type="radio" name="contactMethod" value="EMAIL" /> Email</label>
+                  <label class="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-normal"><input type="radio" name="contactMethod" value="" /> No preference</label>
+                </div>
+              </fieldset>
+              <div class="sm:col-span-2">
+                <p class="text-sm font-semibold">Social handles</p>
+                <div class="mt-2 grid gap-3 sm:grid-cols-2">
+                  <input id="f-instagram" placeholder="Instagram" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" />
+                  <input id="f-facebook" placeholder="Facebook" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" />
+                  <input id="f-twitter" placeholder="Twitter / X" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" />
+                  <input id="f-tiktok" placeholder="TikTok" class="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40" />
+                </div>
+              </div>
+              <button id="save-btn" class="sm:col-span-2 rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:opacity-90">Save changes</button>
+            </div>
+          </form>
+
+          <!-- Account -->
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><svg class="size-5" aria-hidden="true"><use href="#i-lock-keyhole"/></svg></span>
+                <div>
+                  <p class="text-sm font-semibold">Password &amp; security</p>
+                  <p class="text-xs text-muted-foreground">Change your password or manage your session</p>
+                </div>
+              </div>
+              <a href="/settings.html" class="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:border-primary">Account settings</a>
+            </div>
+          </div>
+
+          <!-- My Businesses -->
+          <div class="rounded-2xl border border-border bg-card p-6">
+            <h3 class="mb-1 font-mono text-lg font-bold">My businesses</h3>
+            <p class="mb-5 text-sm text-muted-foreground">Everything you own, at a glance.</p>
+            <div id="business-list"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/include.js"></script>
+  <script>
+    if (requireOwner()) throw new Error('redirecting')
+
+    const msg = document.getElementById('message')
+    const saveBtn = document.getElementById('save-btn')
+    const bioInput = document.getElementById('f-bio')
+    const bioCount = document.getElementById('bio-count')
+    let profile = null
+
+    const KYC_STYLES = {
+      NOT_SUBMITTED: 'bg-muted text-muted-foreground',
+      PENDING: 'bg-amber-100 text-amber-800',
+      VERIFIED: 'bg-primary/15 text-primary',
+      REJECTED: 'bg-red-100 text-red-700',
+    }
+    const KYC_LABELS = {
+      NOT_SUBMITTED: 'Not submitted',
+      PENDING: 'Pending review',
+      VERIFIED: 'Verified',
+      REJECTED: 'Rejected',
+    }
+    const KYC_LINK_TEXT = {
+      NOT_SUBMITTED: 'Start verification',
+      PENDING: 'View status',
+      VERIFIED: 'Manage',
+      REJECTED: 'Resubmit',
+    }
+
+    const BIZ_STATUS_STYLES = {
+      PENDING: 'bg-amber-100 text-amber-800',
+      APPROVED: 'bg-primary/15 text-primary',
+      REJECTED: 'bg-red-100 text-red-700',
+      SUSPENDED: 'bg-muted text-muted-foreground',
+    }
+
+    function showMessage(text, isError) {
+      msg.textContent = text
+      msg.className = 'mb-6 rounded-xl p-3 text-sm ' + (isError ? 'bg-red-50 text-red-600' : 'bg-primary/10 text-primary')
+      msg.classList.remove('hidden')
+    }
+
+    function renderAvatar() {
+      const img = document.getElementById('profile-avatar')
+      const init = document.getElementById('profile-initials')
+      const name = profile.displayName || profile.email
+      document.getElementById('profile-name').textContent = name
+      document.getElementById('profile-email').textContent = profile.email
+      document.getElementById('profile-role').textContent = profile.role === 'ADMIN' ? 'Administrator' : profile.role === 'BUSINESS_OWNER' ? 'Business owner' : profile.role
+      if (profile.avatarUrl) {
+        img.src = imageUrl(profile.avatarUrl)
+        img.classList.remove('hidden')
+        init.classList.add('hidden')
+      } else {
+        img.classList.add('hidden')
+        init.classList.remove('hidden')
+        init.textContent = initials(name)
+      }
+      const joined = profile.createdAt ? new Date(profile.createdAt) : null
+      document.getElementById('profile-member-since').textContent = joined
+        ? 'Member since ' + joined.toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '—'
+    }
+
+    function renderKyc() {
+      const badge = document.getElementById('kyc-badge')
+      const link = document.getElementById('kyc-link')
+      const status = profile.kycStatus || 'NOT_SUBMITTED'
+      const check = status === 'VERIFIED' ? '<svg class="size-4" aria-hidden="true"><use href="#i-check-circle-2"/></svg>' : ''
+      badge.className = 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ' + (KYC_STYLES[status] || KYC_STYLES.NOT_SUBMITTED)
+      badge.innerHTML = check + escapeHtml(KYC_LABELS[status] || status)
+      link.textContent = KYC_LINK_TEXT[status] || 'Manage'
+      if (status === 'REJECTED') {
+        link.classList.add('border-red-300', 'text-red-600')
+      } else {
+        link.classList.remove('border-red-300', 'text-red-600')
+      }
+    }
+
+    function fillForm() {
+      document.getElementById('f-displayName').value = profile.displayName || ''
+      document.getElementById('f-email').value = profile.email || ''
+      bioInput.value = profile.bio || ''
+      updateBioCount()
+      document.getElementById('f-phone').value = profile.phone || ''
+      document.getElementById('f-whatsapp').value = profile.whatsappNumber || ''
+      const method = profile.preferredContactMethod || ''
+      const radio = document.querySelector('input[name="contactMethod"][value="' + method + '"]')
+      if (radio) radio.checked = true
+      const s = profile.socialHandles || {}
+      document.getElementById('f-instagram').value = s.instagram || ''
+      document.getElementById('f-facebook').value = s.facebook || ''
+      document.getElementById('f-twitter').value = s.twitter || ''
+      document.getElementById('f-tiktok').value = s.tiktok || ''
+    }
+
+    function updateBioCount() {
+      bioCount.textContent = bioInput.value.length + ' / 300'
+    }
+
+    function statusBadge(status, note) {
+      let html = '<span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold ' + (BIZ_STATUS_STYLES[status] || 'bg-muted text-muted-foreground') + '">' + escapeHtml(status) + '</span>'
+      if ((status === 'REJECTED' || status === 'SUSPENDED') && note) {
+        html += '<p class="mt-2 text-xs text-muted-foreground"><strong class="text-red-600">Reason:</strong> ' + escapeHtml(note) + '</p>'
+      }
+      return html
+    }
+
+    function renderBusinesses() {
+      const list = document.getElementById('business-list')
+      const items = profile.businesses || []
+      list.innerHTML = ''
+      if (!items.length) {
+        list.innerHTML = '<div class="rounded-2xl border border-dashed border-border p-10 text-center"><p class="text-sm text-muted-foreground">You have no businesses yet.</p><a href="/owner/business-form.html" class="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:opacity-90"><svg class="size-4" aria-hidden="true"><use href="#i-plus"/></svg>Create your first business</a></div>'
+        return
+      }
+      items.forEach((b) => {
+        const div = document.createElement('div')
+        div.className = 'flex flex-col justify-between gap-4 rounded-xl border border-border bg-background p-5 sm:flex-row sm:items-center'
+        const featured = b.isFeatured ? '<span class="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700"><svg class="size-3" aria-hidden="true"><use href="#i-star"/></svg>Featured</span>' : ''
+        div.innerHTML = `
+          <div>
+            <div class="flex flex-wrap items-center gap-2"><p class="font-semibold">${escapeHtml(b.name)}</p>${statusBadge(b.status, b.moderationNote)}${featured}</div>
+          </div>
+          <a href="/owner/business-form.html?id=${b.id}" class="shrink-0 rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:border-primary">Manage listing</a>`
+        list.appendChild(div)
+      })
+    }
+
+    async function load() {
+      try {
+        const { data } = await apiGet('/profile')
+        profile = data.profile
+        renderAvatar()
+        renderKyc()
+        fillForm()
+        renderBusinesses()
+      } catch (err) {
+        showMessage(err.message || 'Could not load your profile.', true)
+      }
+    }
+
+    saveBtn.addEventListener('click', async function (e) {
+      e.preventDefault()
+      saveBtn.disabled = true
+      saveBtn.textContent = 'Saving…'
+      msg.classList.add('hidden')
+      const methodInput = document.querySelector('input[name="contactMethod"]:checked')
+      const method = methodInput ? methodInput.value : ''
+      try {
+        const body = {
+          displayName: document.getElementById('f-displayName').value.trim() || null,
+          bio: bioInput.value.trim() || null,
+          preferredContactMethod: method || null,
+          phone: document.getElementById('f-phone').value.trim() || null,
+          whatsappNumber: document.getElementById('f-whatsapp').value.trim() || null,
+          socialHandles: {
+            instagram: document.getElementById('f-instagram').value.trim() || undefined,
+            facebook: document.getElementById('f-facebook').value.trim() || undefined,
+            twitter: document.getElementById('f-twitter').value.trim() || undefined,
+            tiktok: document.getElementById('f-tiktok').value.trim() || undefined,
+          },
+        }
+        const { data } = await apiPatch('/profile', body)
+        profile = data.profile
+        renderAvatar()
+        renderKyc()
+        showMessage('Profile saved.', false)
+      } catch (err) {
+        const f = err.fields || {}
+        showMessage(f.displayName || f.bio || f.preferredContactMethod || f.phone || f.whatsappNumber || f.socialHandles || err.message || 'Could not save changes.', true)
+      } finally {
+        saveBtn.disabled = false
+        saveBtn.textContent = 'Save changes'
+      }
+    })
+
+    bioInput.addEventListener('input', updateBioCount)
+
+    document.getElementById('avatar-btn').addEventListener('click', function () {
+      document.getElementById('f-avatar').click()
+    })
+
+    document.getElementById('f-avatar').addEventListener('change', async function () {
+      const file = this.files && this.files[0]
+      if (!file) return
+      saveBtn.disabled = true
+      saveBtn.textContent = 'Uploading photo…'
+      msg.classList.add('hidden')
+      try {
+        const fd = new FormData()
+        fd.append('avatar', file)
+        const { data } = await apiPost('/profile/avatar', fd)
+        profile.avatarUrl = data.avatarUrl
+        renderAvatar()
+        showMessage('Profile photo updated.', false)
+      } catch (err) {
+        showMessage(err.message || 'Photo upload failed.', true)
+      } finally {
+        saveBtn.disabled = false
+        saveBtn.textContent = 'Save changes'
+        this.value = ''
+      }
+    })
+
+    load()
+  </script>
+</body>
+</html>

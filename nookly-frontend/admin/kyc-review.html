@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYC review — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body data-page="kyc" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="../partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="../partials/header-marketplace.html"></div>
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="../partials/sidebar-admin.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Admin console</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]">KYC review</h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Review owner identity submissions. Verify owners whose documents check out so their businesses can be approved.</p>
+        </div>
+        <p class="mb-6 hidden rounded-xl bg-red-50 p-3 text-sm text-red-600" id="message"></p>
+
+        <div class="mb-6 flex flex-wrap gap-2" id="filter-tabs">
+          <button class="filter-btn rounded-full px-4 py-2 text-sm font-bold" data-status="PENDING">Pending</button>
+          <button class="filter-btn rounded-full px-4 py-2 text-sm font-bold" data-status="VERIFIED">Verified</button>
+          <button class="filter-btn rounded-full px-4 py-2 text-sm font-bold" data-status="REJECTED">Rejected</button>
+        </div>
+
+        <div id="queue-list" class="flex flex-col gap-3"></div>
+
+        <div id="pagination" class="mt-6 hidden items-center justify-between gap-3"></div>
+      </section>
+    </div>
+  </main>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/helpers.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/include.js"></script>
+  <script>
+    if (requireAdmin()) throw new Error('redirecting')
+
+    const msg = document.getElementById('message')
+    const queueList = document.getElementById('queue-list')
+    const pagination = document.getElementById('pagination')
+    let currentStatus = 'PENDING'
+    let currentPage = 1
+    let pageLimit = 10
+
+    const STATUS_STYLES = {
+      PENDING: 'bg-amber-100 text-amber-800',
+      VERIFIED: 'bg-primary/15 text-primary',
+      REJECTED: 'bg-red-100 text-red-700',
+    }
+
+    function showMessage(text) {
+      msg.textContent = text
+      msg.classList.remove('hidden')
+    }
+
+    function setActiveTab() {
+      document.querySelectorAll('.filter-btn').forEach(function (btn) {
+        const active = btn.getAttribute('data-status') === currentStatus
+        btn.className = 'filter-btn rounded-full px-4 py-2 text-sm font-bold ' +
+          (active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground')
+      })
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        currentStatus = btn.getAttribute('data-status')
+        currentPage = 1
+        loadQueue()
+      })
+    })
+
+    async function loadQueue() {
+      setActiveTab()
+      queueList.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">Loading…</div>'
+      pagination.classList.add('hidden')
+      try {
+        const { data } = await apiGet('/admin/kyc?status=' + currentStatus + '&page=' + currentPage + '&limit=' + pageLimit)
+        renderQueue(data.data || [])
+        renderPagination(data.total || 0)
+      } catch (err) {
+        queueList.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">Could not load the KYC queue. ' + escapeHtml(err.message || '') + '</div>'
+      }
+    }
+
+    function renderQueue(items) {
+      queueList.innerHTML = ''
+      if (!items.length) {
+        queueList.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">No ' + currentStatus.toLowerCase() + ' submissions.</div>'
+        return
+      }
+      items.forEach(function (s) {
+        const div = document.createElement('div')
+        div.className = 'rounded-2xl border border-border bg-card p-5'
+        const ownerName = (s.owner && (s.owner.displayName || s.owner.email)) || 'Unknown owner'
+        const style = STATUS_STYLES[s.status] || 'bg-muted text-muted-foreground'
+        div.innerHTML = `
+          <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap"><h3 class="font-mono text-xl font-bold">${escapeHtml(ownerName)}</h3><span class="rounded-full px-2.5 py-1 text-xs font-bold ${style}">${escapeHtml(s.status)}</span></div>
+              <p class="mt-1 text-sm text-muted-foreground">${escapeHtml(s.owner ? s.owner.email : '')} · NIN <span class="font-mono">${escapeHtml(s.ninMasked)}</span> · submitted ${new Date(s.submittedAt).toLocaleString()}</p>
+            </div>
+            <button class="review-btn rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Review</button>
+          </div>`
+        div.querySelector('.review-btn').addEventListener('click', function () {
+          openDetail(s.owner.id, s.ninMasked)
+        })
+        queueList.appendChild(div)
+      })
+    }
+
+    function renderPagination(total) {
+      const pages = Math.max(1, Math.ceil(total / pageLimit))
+      pagination.classList.remove('hidden')
+      pagination.innerHTML = '<span class="text-sm text-muted-foreground">' + total + ' submission' + (total === 1 ? '' : 's') + '</span>' +
+        '<div class="flex items-center gap-2">' +
+        '<button id="prev-page" class="rounded-lg border border-border px-3 py-2 text-sm font-semibold" ' + (currentPage <= 1 ? 'disabled' : '') + '>Prev</button>' +
+        '<span class="text-sm text-muted-foreground">Page ' + currentPage + ' of ' + pages + '</span>' +
+        '<button id="next-page" class="rounded-lg border border-border px-3 py-2 text-sm font-semibold" ' + (currentPage >= pages ? 'disabled' : '') + '>Next</button>' +
+        '</div>'
+      document.getElementById('prev-page').addEventListener('click', function () {
+        if (currentPage <= 1) return
+        currentPage -= 1
+        loadQueue()
+      })
+      document.getElementById('next-page').addEventListener('click', function () {
+        if (currentPage >= pages) return
+        currentPage += 1
+        loadQueue()
+      })
+    }
+
+    function closeDetail() {
+      loadQueue()
+    }
+
+    async function openDetail(userId, ninMasked) {
+      queueList.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">Loading submission…</div>'
+      pagination.classList.add('hidden')
+      try {
+        const { data } = await apiGet('/admin/kyc/' + userId)
+        renderDetail(data.submission, ninMasked)
+      } catch (err) {
+        queueList.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">Could not load this submission. ' + escapeHtml(err.message || '') + '</div>'
+      }
+    }
+
+    function renderDetail(s, ninMasked) {
+      const owner = s.user || {}
+      const ownerName = owner.displayName || owner.email || 'Unknown owner'
+      const style = STATUS_STYLES[s.status] || 'bg-muted text-muted-foreground'
+      const docFields = [
+        { label: 'Selfie', field: 'selfie' },
+        { label: 'Certificate of registration', field: 'certificate' },
+        { label: 'Home proof of address', field: 'proofOfAddressHome' },
+        { label: 'Workshop proof of address', field: 'proofOfAddressWorkshop' },
+      ]
+      const docs = docFields.map(function (d) {
+        return '<button class="doc-btn rounded-xl border border-border px-4 py-2 text-sm font-semibold" data-field="' + d.field + '">' + d.label + '</button>'
+      }).join('')
+
+      let html = '<div class="rounded-2xl border border-border bg-card p-6">'
+      html += '<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">'
+      html += '<div><div class="flex items-center gap-2 flex-wrap"><h2 class="font-mono text-xl font-bold">' + escapeHtml(ownerName) + '</h2><span class="rounded-full px-2.5 py-1 text-xs font-bold ' + style + '">' + escapeHtml(s.status) + '</span></div>'
+      html += '<p class="mt-1 text-sm text-muted-foreground">' + escapeHtml(owner.email || '') + '</p></div>'
+      html += '<button id="back-btn" class="rounded-lg border border-border px-4 py-2 text-sm font-semibold">&larr; Back to queue</button>'
+      html += '</div>'
+      html += '<dl class="mt-5 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">'
+      html += '<div class="flex justify-between gap-4 border-b border-border pb-2"><dt class="text-muted-foreground">NIN</dt><dd class="font-mono font-semibold">' + escapeHtml(ninMasked || s.ninMasked || '—') + '</dd></div>'
+      html += '<div class="flex justify-between gap-4 border-b border-border pb-2"><dt class="text-muted-foreground">Proof of address</dt><dd class="font-semibold">' + escapeHtml(s.proofOfAddressType || '—') + '</dd></div>'
+      html += '<div class="flex justify-between gap-4 border-b border-border pb-2"><dt class="text-muted-foreground">Submitted</dt><dd class="font-semibold">' + (s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '—') + '</dd></div>'
+      html += '<div class="flex justify-between gap-4 border-b border-border pb-2"><dt class="text-muted-foreground">Reviewed</dt><dd class="font-semibold">' + (s.reviewedAt ? new Date(s.reviewedAt).toLocaleString() : 'Not yet reviewed') + '</dd></div>'
+      if (s.rejectionReason) {
+        html += '<div class="flex justify-between gap-4 border-b border-border pb-2 sm:col-span-2"><dt class="text-muted-foreground">Rejection reason</dt><dd class="font-semibold text-red-600">' + escapeHtml(s.rejectionReason) + '</dd></div>'
+      }
+      html += '</dl>'
+      html += '<div class="mt-6 flex flex-wrap gap-2" id="docs">' + docs + '</div>'
+      html += '<div id="doc-viewer" class="mt-4 hidden"></div>'
+      html += '<div class="mt-6 flex flex-wrap gap-2" id="detail-actions"></div>'
+      html += '</div>'
+      queueList.innerHTML = html
+
+      document.getElementById('back-btn').addEventListener('click', closeDetail)
+
+      document.querySelectorAll('.doc-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          viewDocument(owner.id, btn.getAttribute('data-field'))
+        })
+      })
+
+      const actions = document.getElementById('detail-actions')
+      if (s.status === 'PENDING' || s.status === 'REJECTED') {
+        const v = document.createElement('button')
+        v.className = 'rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground'
+        v.textContent = 'Verify & approve'
+        v.addEventListener('click', verifySubmission(owner.id))
+        actions.appendChild(v)
+      }
+      if (s.status === 'PENDING') {
+        const r = document.createElement('button')
+        r.className = 'rounded-lg border border-border px-4 py-2 text-sm font-bold'
+        r.textContent = 'Reject'
+        r.addEventListener('click', rejectSubmission(owner.id))
+        actions.appendChild(r)
+      }
+    }
+
+    function viewDocument(userId, field) {
+      const viewer = document.getElementById('doc-viewer')
+      viewer.classList.remove('hidden')
+      viewer.innerHTML = '<div class="rounded-xl border border-dashed border-border py-10 text-center text-muted-foreground">Loading document…</div>'
+      const token = getToken()
+      const img = document.createElement('img')
+      img.alt = field
+      img.className = 'mx-auto max-h-96 rounded-xl border border-border object-contain'
+      img.onload = function () { viewer.innerHTML = ''; viewer.appendChild(img) }
+      img.onerror = function () {
+        viewer.innerHTML = '<div class="rounded-xl border border-dashed border-border py-10 text-center text-muted-foreground">Could not load document. It may not have been uploaded.</div>'
+      }
+      img.src = API_BASE_URL + '/admin/kyc/' + userId + '/documents/' + field + '?t=' + Date.now()
+      img.setAttribute('crossorigin', 'use-credentials')
+      /* Auth header can't be set on <img>; stream through a tokenized fetch. */
+      fetch(API_BASE_URL + '/admin/kyc/' + userId + '/documents/' + field + '?t=' + Date.now(), {
+        headers: { Authorization: 'Bearer ' + token },
+      }).then(function (res) {
+        if (!res.ok) throw new Error(res.status)
+        return res.blob()
+      }).then(function (blob) {
+        viewer.innerHTML = ''
+        const url = URL.createObjectURL(blob)
+        const el = document.createElement('img')
+        el.src = url
+        el.alt = field
+        el.className = 'mx-auto max-h-96 rounded-xl border border-border object-contain'
+        viewer.appendChild(el)
+      }).catch(function () {
+        viewer.innerHTML = '<div class="rounded-xl border border-dashed border-border py-10 text-center text-muted-foreground">Could not load document. It may not have been uploaded.</div>'
+      })
+    }
+
+    function verifySubmission(userId) {
+      return async function () {
+        if (!confirm('Verify this owner? Their businesses will be eligible for approval.')) return
+        try {
+          await apiPatch('/admin/kyc/' + userId + '/verify')
+          showMessage('Owner verified.')
+          closeDetail()
+        } catch (err) {
+          showMessage(err.message || 'Verification failed')
+        }
+      }
+    }
+
+    function rejectSubmission(userId) {
+      return async function () {
+        const reason = prompt('Rejection reason (10+ characters):')
+        if (reason === null) return
+        try {
+          await apiPatch('/admin/kyc/' + userId + '/reject', { reason })
+          showMessage('Submission rejected. The owner has been notified.')
+          closeDetail()
+        } catch (err) {
+          showMessage(err.message || 'Rejection failed')
+        }
+      }
+    }
+
+    loadQueue()
+  </script>
+</body>
+</html>

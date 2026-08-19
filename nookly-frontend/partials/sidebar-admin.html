@@ -1,0 +1,20 @@
+<!-- Admin marketplace sidebar -->
+<aside class="flex gap-2 overflow-x-auto lg:flex-col">
+  <div class="mb-3 hidden rounded-2xl bg-primary/10 p-4 lg:block">
+    <p class="text-xs font-semibold uppercase tracking-wider text-primary-deep">Nookly workspace</p>
+    <p class="mt-2 font-bold text-primary-deep" id="workspace-name">Administrator</p>
+    <p class="text-sm text-primary-deep/80" id="workspace-role">Admin console</p>
+  </div>
+  <a href="/admin/dashboard.html" data-nav-key="moderation" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-layout-dashboard"/></svg>Moderation
+  </a>
+  <a href="/admin/kyc-review.html" data-nav-key="kyc" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-user-round"/></svg>KYC review
+  </a>
+  <a href="/admin/users.html" data-nav-key="users" class="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+    <svg class="size-4" aria-hidden="true"><use href="#i-users"/></svg>Users
+  </a>
+  <button class="sign-out hidden items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted lg:flex">
+    <svg class="size-4" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out
+  </button>
+</aside>

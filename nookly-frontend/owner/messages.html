@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body data-page="messages" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="../partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="../partials/header-marketplace.html"></div>
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="../partials/sidebar-marketplace.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your Nookly</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]">Messages</h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Conversations from customers who found your businesses. Reply here to keep the thread going.</p>
+        </div>
+        <div class="flex flex-col gap-4">
+          <div id="inbox-list" class="flex flex-col gap-3"></div>
+          <div id="thread" class="hidden"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/helpers.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/include.js"></script>
+  <script>
+    if (requireOwner()) throw new Error('redirecting')
+
+    const params = new URLSearchParams(window.location.search)
+    const focusBusinessId = params.get('businessId')
+    const inbox = document.getElementById('inbox-list')
+    const threadEl = document.getElementById('thread')
+    let conversations = []
+    let activeId = null
+
+    function timeLabel(iso) {
+      const then = new Date(iso).getTime()
+      const diff = Date.now() - then
+      if (isNaN(diff)) return ''
+      if (diff < 3600000) return Math.max(1, Math.floor(diff / 60000)) + 'm ago'
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago'
+      return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    }
+
+    function renderInbox() {
+      inbox.innerHTML = ''
+      if (!conversations.length) {
+        inbox.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">No customer conversations yet. When someone messages you about a listing, their thread appears here.</div>'
+        return
+      }
+      conversations.forEach((c) => {
+        const div = document.createElement('div')
+        div.className = 'flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 transition hover:shadow-md'
+        div.dataset.convId = c.id
+        const last = c.lastMessage
+        const preview = last
+          ? (last.senderType === 'OWNER' ? 'You: ' : '') + escapeHtml(last.text.length > 90 ? last.text.slice(0, 90) + '…' : last.text)
+          : '<span class="italic text-muted-foreground">No messages yet</span>'
+        const when = last ? timeLabel(last.createdAt) : ''
+        const badge = c.unread > 0
+          ? '<span class="rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground">' + c.unread + '</span>'
+          : ''
+        div.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-mono text-lg font-bold">${escapeHtml(c.businessName)}</h3>
+              ${badge}
+              <span class="text-xs text-muted-foreground">${c.messageCount} message${c.messageCount === 1 ? '' : 's'}</span>
+            </div>
+            <p class="mt-1 truncate text-sm text-muted-foreground">${preview}</p>
+          </div>
+          <div class="flex shrink-0 flex-col items-end gap-1">
+            <span class="text-xs text-muted-foreground">${when}</span>
+            <button class="open-btn rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Open</button>
+          </div>`
+        div.querySelector('.open-btn').addEventListener('click', () => openThread(c.id))
+        inbox.appendChild(div)
+      })
+    }
+
+    function renderMessages(rows) {
+      const wrap = document.getElementById('thread-messages')
+      wrap.innerHTML = ''
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="py-10 text-center text-sm text-muted-foreground">Say hi — start the conversation with a friendly reply.</div>'
+        return
+      }
+      rows.forEach((m) => {
+        const mine = m.senderType === 'OWNER'
+        const row = document.createElement('div')
+        row.className = 'flex ' + (mine ? 'justify-end' : 'justify-start')
+        row.innerHTML = '<div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ' + (mine ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm bg-muted text-foreground') + '">' + escapeHtml(m.text) + '</div>'
+        wrap.appendChild(row)
+      })
+      wrap.scrollTop = wrap.scrollHeight
+    }
+
+    async function openThread(conversationId) {
+      activeId = conversationId
+      threadEl.classList.remove('hidden')
+      inbox.classList.add('hidden')
+      const c = conversations.find((x) => x.id === conversationId)
+      threadEl.innerHTML = `
+        <div class="rounded-2xl border border-border bg-card">
+          <div class="flex items-center justify-between gap-3 border-b border-border p-5">
+            <div class="flex items-center gap-2">
+              <button id="back-btn" class="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">&larr; Inbox</button>
+              <h2 class="font-mono text-xl font-bold">${escapeHtml(c ? c.businessName : 'Conversation')}</h2>
+            </div>
+            <span class="text-xs text-muted-foreground">Customers message you here</span>
+          </div>
+          <div id="thread-messages" class="flex max-h-[50vh] flex-col gap-3 overflow-y-auto p-5"></div>
+          <form id="reply-form" class="flex items-center gap-3 border-t border-border p-4">
+            <input id="reply-input" type="text" autocomplete="off" placeholder="Reply to this customer…" class="min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary" />
+            <button type="submit" class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:opacity-90" aria-label="Send reply"><svg class="size-5" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></button>
+          </form>
+        </div>`
+      document.getElementById('back-btn').addEventListener('click', () => {
+        threadEl.classList.add('hidden')
+        inbox.classList.remove('hidden')
+        activeId = null
+        loadInbox()
+      })
+      const form = document.getElementById('reply-form')
+      const input = document.getElementById('reply-input')
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const text = input.value.trim()
+        if (!text) return
+        input.value = ''
+        const mine = document.createElement('div')
+        mine.className = 'flex justify-end'
+        mine.innerHTML = '<div class="max-w-[75%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground">' + escapeHtml(text) + '</div>'
+        document.getElementById('thread-messages').appendChild(mine)
+        try {
+          await apiPost('/conversations/' + conversationId + '/messages', { text })
+        } catch (err) {
+          alert(err.message || 'Reply failed')
+        }
+      })
+      try {
+        const { data } = await apiGet('/conversations/' + conversationId + '/messages')
+        renderMessages(data.messages || [])
+      } catch (err) {
+        document.getElementById('thread-messages').innerHTML = '<div class="py-10 text-center text-sm text-muted-foreground">Could not load this conversation.</div>'
+      }
+    }
+
+    async function loadInbox() {
+      inbox.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">Loading conversations…</div>'
+      try {
+        const { data } = await apiGet('/conversations/owner')
+        conversations = data.conversations || []
+        renderInbox()
+        if (focusBusinessId) {
+          const match = conversations.find((c) => c.businessId === focusBusinessId)
+          if (match) openThread(match.id)
+        }
+      } catch (err) {
+        inbox.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground">Could not load conversations. ' + escapeHtml(err.message || '') + '</div>'
+      }
+    }
+
+    loadInbox()
+  </script>
+</body>
+</html>

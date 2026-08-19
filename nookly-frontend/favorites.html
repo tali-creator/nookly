@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your favorites — Nookly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page="favorites" class="min-h-screen bg-background text-foreground antialiased">
+  <div data-include="partials/icons.html"></div>
+  <main class="min-h-screen bg-background text-foreground">
+    <div data-include="partials/header-marketplace.html"></div>
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div data-include="partials/sidebar-marketplace.html"></div>
+      <section>
+        <div class="mb-8">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">Your Nookly</p>
+          <h1 class="font-mono text-4xl font-bold tracking-[-0.06em]">Your favorites</h1>
+          <p class="mt-3 max-w-2xl leading-relaxed text-muted-foreground">Keep your favorite local businesses close for the next time you need a hand.</p>
+        </div>
+        <div class="flex flex-col gap-6">
+          <div class="grid gap-5 md:grid-cols-2" id="favorites-grid"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/device-id.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/include.js"></script>
+  <script>
+    const grid = document.getElementById('favorites-grid')
+
+    async function load() {
+      grid.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2">Loading favorites…</div>'
+      try {
+        const { data } = await apiGet('/favorites?deviceId=' + getDeviceId())
+        const items = data.favorites || []
+        if (!items.length) {
+          grid.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2">No favorites yet. Save a business from the marketplace to see it here.</div>'
+          return
+        }
+        grid.innerHTML = ''
+        items.forEach((b) => grid.appendChild(renderBusinessCard(b, (id, isFav) => {
+          if (!isFav) load()
+        })))
+      } catch (err) {
+        grid.innerHTML = '<div class="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2">Could not load favorites. ' + escapeHtml(err.message || '') + '</div>'
+      }
+    }
+
+    load()
+  </script>
+</body>
+</html>
