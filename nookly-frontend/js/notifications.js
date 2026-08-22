@@ -187,6 +187,9 @@ function initNotifications() {
   refreshBadge()
 
   // Real-time updates: connect once, share across every bell on the page.
+  // Probe sessions (set __NOOKLY_NO_SOCKET in the seed helper) skip the live
+  // socket so headless DOM dumps don't hang on the persistent connection.
+  if (window.localStorage && window.localStorage.getItem('__NOOKLY_NO_SOCKET') === '1') return
   loadSocketIoClient()
     .then(function () {
       notifSocket = window.io(API_BASE_URL, {
