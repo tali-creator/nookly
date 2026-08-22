@@ -145,7 +145,7 @@ export default function MarketplaceShell({
           <button
             type="button"
             onClick={handleSignOut}
-            className="hidden items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground lg:flex"
+            className="flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <svg className="size-4" aria-hidden="true">
               <use href="#i-log-out" />
