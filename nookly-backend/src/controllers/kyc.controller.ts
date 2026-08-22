@@ -1,11 +1,16 @@
 import type { NextFunction, Request, Response } from "express";
-import fs from "fs";
 import { KycSubmissionStatus, ProofOfAddressType } from "@prisma/client";
 import prisma from "../models/prisma";
 import { HttpError } from "../utils/http-error";
 import { getParam } from "../utils/params";
 import { maskSensitive } from "../utils/mask";
-import { deletePrivateFile, privateFilePath, toPrivateUrl } from "../utils/storage";
+import {
+  deletePrivateFile,
+  deleteUploadedFile,
+  privateFilePath,
+  streamPrivateObject,
+  toPrivateUrl,
+} from "../utils/storage";
 import { encryptSecret } from "../utils/encryption";
 import type { KycSubmissionBodyInput } from "../validation/kyc.schemas";
 
@@ -79,8 +84,8 @@ async function submit(
 
     for (const field of required) {
       if (!files[field]?.[0]) {
-        // Clean up everything this request already wrote to disk.
-        optionalFiles.forEach(([, list]) => list.forEach((f) => fs.unlink(f.path, () => {})));
+        // Clean up everything this request already wrote to R2.
+        optionalFiles.forEach(([, list]) => list.forEach((f) => deleteUploadedFile(f)));
         throw new HttpError(
           400,
           body.proofOfAddressType === "BOTH"
@@ -220,24 +225,11 @@ async function getMyDocument(
       throw new HttpError(404, "Document not found");
     }
 
-    const filePath = privateFilePath(url);
-    if (!fs.existsSync(filePath)) {
-      throw new HttpError(404, "Document not found");
-    }
-
-    res.type(pathToContentType(filePath));
-    res.sendFile(filePath);
+    const key = privateFilePath(url);
+    await streamPrivateObject(key, res);
   } catch (err) {
     next(err);
   }
-}
-
-// Minimal extension -> mime map for the files we accept (jpeg/png/webp).
-function pathToContentType(filePath: string): string {
-  const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-  if (ext === ".png") return "image/png";
-  if (ext === ".webp") return "image/webp";
-  return "image/jpeg";
 }
 
 export const kycController = { submit, getMyKyc, getMyDocument };

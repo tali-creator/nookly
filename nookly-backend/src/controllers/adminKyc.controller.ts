@@ -1,10 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import fs from "fs";
 import { KycSubmissionStatus } from "@prisma/client";
 import prisma from "../models/prisma";
 import { HttpError } from "../utils/http-error";
 import { getParam } from "../utils/params";
-import { privateFilePath } from "../utils/storage";
+import { privateFilePath, streamPrivateObject } from "../utils/storage";
 import { sendEmail } from "../lib/email/send";
 import { kycVerifiedTemplate } from "../lib/email/templates/kycVerified";
 import { kycRejectedTemplate } from "../lib/email/templates/kycRejected";
@@ -253,23 +252,11 @@ async function getDocument(
       throw new HttpError(404, "Document not found");
     }
 
-    const filePath = privateFilePath(url);
-    if (!fs.existsSync(filePath)) {
-      throw new HttpError(404, "Document not found");
-    }
-
-    res.type(contentTypeFromPath(filePath));
-    res.sendFile(filePath);
+    const key = privateFilePath(url);
+    await streamPrivateObject(key, res);
   } catch (err) {
     next(err);
   }
-}
-
-function contentTypeFromPath(filePath: string): string {
-  const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-  if (ext === ".png") return "image/png";
-  if (ext === ".webp") return "image/webp";
-  return "image/jpeg";
 }
 
 export const adminKycController = { list, getOne, verify, reject, getDocument };

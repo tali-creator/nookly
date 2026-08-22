@@ -16,25 +16,19 @@ import { ownerRouter } from "./routes/owner.routes";
 import { conversationRouter } from "./routes/conversation.routes";
 import { notificationRouter } from "./routes/notification.routes";
 import { notFoundHandler, errorHandler } from "./middleware/error.middleware";
-import { ensureUploadsDir, uploadsDir } from "./utils/storage";
 import { env } from "./config/env";
 
 export function createApp(): Express {
-  ensureUploadsDir();
-
   const app = express();
 
-  // Security headers: applied before every route AND before express.static so
-  // responses from /uploads (served below) also carry them, including
-  // X-Content-Type-Options: nosniff (helmet default). nosniff stops browsers
-  // from sniffing a non-image file uploaded with a mismatched extension into
-  // an executable context.
-  // crossOriginResourcePolicy is set to "cross-origin" because the frontend
-  // is served from a DIFFERENT origin (see FRONTEND_URL) and displays public
-  // /uploads images via plain <img src>. CORP: same-origin (helmet default)
-  // would make browsers block every cross-origin image load even though the
-  // API itself is CORS-enabled. Private KYC files live in uploads-private and
-  // are never served statically, so this only relaxes public images.
+  // Security headers applied before every route. crossOriginResourcePolicy is
+  // "cross-origin" because the frontend is served from a DIFFERENT origin (see
+  // FRONTEND_URL) and loads public images directly from the R2 public bucket
+  // via plain <img src>. CORP: same-origin (helmet default) would make browsers
+  // block every cross-origin image load even though the API itself is
+  // CORS-enabled. Private KYC documents live in the R2 private bucket and are
+  // NEVER served publicly — they are streamed only through the authenticated
+  // document routes.
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
   // CORS: only configured frontend origins are allowed (see env.ts).
@@ -55,10 +49,6 @@ export function createApp(): Express {
   // rejected by body-parser with a 413, mapped to a clean message in
   // error.middleware.ts.
   app.use(express.json({ limit: "100kb" }));
-  // ONLY the public uploads directory is served statically. uploads-private/
-  // (KYC documents) is never exposed via express.static — files are streamed
-  // exclusively through the authenticated document routes.
-  app.use("/uploads", express.static(uploadsDir));
 
   app.use("/health", healthRouter);
   app.use("/auth", authRouter);

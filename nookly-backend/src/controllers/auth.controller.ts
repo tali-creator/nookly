@@ -41,8 +41,21 @@ async function dummyBcryptWork(): Promise<void> {
   }
 }
 
-function publicUser(user: { id: string; email: string; role: UserRole }) {
-  return { id: user.id, email: user.email, role: user.role };
+function publicUser(user: {
+  id: string;
+  email: string;
+  role: UserRole;
+  displayName?: string | null;
+}) {
+  // name = displayName when set, else undefined so clients can fall back
+  // to the email address (e.g. "Nookly workspace" card shows the username
+  // once the owner has updated their profile, email before that).
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.displayName || undefined,
+  };
 }
 
 async function signup(
