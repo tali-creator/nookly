@@ -36,6 +36,11 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/tsconfig.json ./tsconfig.json
+# prisma.config.ts is required at RUNTIME: `npx prisma migrate deploy` loads it
+# to resolve the datasource url via env("DATABASE_URL"). The build stage has it
+# (COPY . .), but it must be copied here explicitly — without it, migrate deploy
+# fails with "datasource.url property is required".
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 
 # The server binds 0.0.0.0 and reads PORT from the environment (Render assigns
 # this dynamically). File storage is Cloudflare R2 (S3-compatible) — no local
