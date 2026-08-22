@@ -16,6 +16,16 @@ RUN npm ci
 # --- build ---
 FROM deps AS build
 COPY . .
+
+# Render only injects env vars at CONTAINER RUNTIME, not during the Docker
+# BUILD stage. prisma.config.ts resolves the datasource url via env("DATABASE_URL")
+# on every CLI invocation (including `prisma generate`, which needs the config to
+# load but never connects). Supply a throwaway placeholder so the build stage can
+# resolve the config. This ENV lives ONLY in the build stage — it is NOT copied
+# into the runtime stage (each FROM starts a fresh stage), so the running
+# container uses the REAL DATABASE_URL that Render injects at runtime.
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+
 RUN npx prisma generate && npm run build
 
 # --- runtime ---
