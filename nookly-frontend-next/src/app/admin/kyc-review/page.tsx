@@ -66,13 +66,13 @@ export default function AdminKycReviewPage() {
     ensureSeedFromQuery();
     // requireAdmin(): no token -> admin login; wrong role -> kick out.
     if (!getToken()) {
-      router.replace("/admin/login");
+      router.replace("/admin");
       return;
     }
     const user = getUser();
     if (!user || user.role !== "ADMIN") {
       clearSession();
-      router.replace("/admin/login");
+      router.replace("/admin");
       return;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadQueue() resets to the loading state synchronously

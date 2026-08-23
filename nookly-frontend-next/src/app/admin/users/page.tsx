@@ -92,13 +92,13 @@ export default function AdminUsersPage() {
     ensureSeedFromQuery();
     // requireAdmin(): no token -> admin login; wrong role -> kick out.
     if (!getToken()) {
-      router.replace("/admin/login");
+      router.replace("/admin");
       return;
     }
     const user = getUser();
     if (!user || user.role !== "ADMIN") {
       clearSession();
-      router.replace("/admin/login");
+      router.replace("/admin");
       return;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadUsers() resets to the loading state synchronously
