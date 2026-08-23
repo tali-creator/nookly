@@ -44,6 +44,27 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
+      <div className="mb-4 flex items-center justify-between sm:hidden">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground"
+        >
+          <svg className="size-5" aria-hidden="true">
+            <use href="#i-arrow-left" />
+          </svg>
+        </button>
+        <Link
+          href="/admin"
+          className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
+        >
+          <svg className="size-4" aria-hidden="true">
+            <use href="#i-lock-keyhole" />
+          </svg>
+          Admin
+        </Link>
+      </div>
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-9">
         <h1 className="font-mono text-3xl font-bold">Welcome back</h1>
         <p className="mt-2 text-muted-foreground">

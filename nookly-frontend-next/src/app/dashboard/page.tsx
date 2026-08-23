@@ -8,17 +8,19 @@ import MarketplaceShell from "@/components/MarketplaceShell";
 import BusinessCard from "@/components/BusinessCard";
 import { apiGet } from "@/lib/api";
 import { getDeviceId } from "@/lib/device-id";
-import { ensureSeedFromQuery } from "@/lib/auth";
-import type { NearbyBusiness } from "@/lib/types";
+import { ensureSeedFromQuery, getUser } from "@/lib/auth";
+import type { NearbyBusiness, User } from "@/lib/types";
 
 export default function DashboardPage() {
   const [savedCount, setSavedCount] = useState(0);
   const [featuredCount, setFeaturedCount] = useState(0);
   const [items, setItems] = useState<NearbyBusiness[] | null>(null);
   const [error, setError] = useState("");
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     ensureSeedFromQuery();
+    setUser(getUser());
     apiGet<{ favorites: unknown[] }>("/favorites?deviceId=" + getDeviceId())
       .then((res) => setSavedCount((res.data.favorites || []).length))
       .catch(() => {});
@@ -37,6 +39,19 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <MarketplaceShell active="dashboard">
+        {user?.role === "ADMIN" && (
+          <div className="mb-4 flex justify-end sm:hidden">
+            <Link
+              href="/admin/dashboard"
+              className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
+            >
+              <svg className="size-4" aria-hidden="true">
+                <use href="#i-layout-dashboard" />
+              </svg>
+              Admin dashboard
+            </Link>
+          </div>
+        )}
         <section>
           <div className="mb-8">
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">
