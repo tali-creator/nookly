@@ -119,54 +119,62 @@ export default function MarketplaceShell({
               className="flex size-9 items-center justify-center rounded-xl border border-border text-foreground lg:hidden"
             >
               <svg className="size-5" aria-hidden="true">
-                <use href="#i-menu" />
+                <use href={menuOpen ? "#i-x" : "#i-menu"} />
               </svg>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile nav dropdown (replaces the horizontal scroll tabs on small screens) */}
+      {/* Mobile nav dropdown — overlays content (no layout shift) */}
       {menuOpen && (
-        <div className="border-b border-border bg-background lg:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4">
-            <div className="mb-2 rounded-2xl bg-primary/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary-deep">
-                Nookly workspace
-              </p>
-              <p className="mt-2 font-bold text-primary-deep">{name}</p>
-              <p className="text-sm text-primary-deep/80">{roleLabel(user)}</p>
-            </div>
-            {navItems.map((item) => (
-              <Link
-                key={item.key}
-                href={item.href}
-                onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
-                  active === item.key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+        <div className="fixed inset-x-0 bottom-0 top-20 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div className="absolute inset-x-0 top-0 max-h-full overflow-y-auto border-b border-border bg-background shadow-xl">
+            <div className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4">
+              <div className="mb-2 rounded-2xl bg-primary/10 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary-deep">
+                  Nookly workspace
+                </p>
+                <p className="mt-2 font-bold text-primary-deep">{name}</p>
+                <p className="text-sm text-primary-deep/80">{roleLabel(user)}</p>
+              </div>
+              {navItems.map((item) => (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
+                    active === item.key
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <svg className="size-4" aria-hidden="true">
+                    <use href={`#${item.icon}`} />
+                  </svg>
+                  {item.label}
+                </Link>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleSignOut();
+                }}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <svg className="size-4" aria-hidden="true">
-                  <use href={`#${item.icon}`} />
+                  <use href="#i-log-out" />
                 </svg>
-                {item.label}
-              </Link>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                handleSignOut();
-              }}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <svg className="size-4" aria-hidden="true">
-                <use href="#i-log-out" />
-              </svg>
-              Sign out
-            </button>
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       )}
