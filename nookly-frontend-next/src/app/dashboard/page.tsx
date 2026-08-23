@@ -88,7 +88,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-mono text-xl font-bold">Find your next pro</h2>
                   <p className="mt-1 text-sm text-muted-foreground">

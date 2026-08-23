@@ -125,7 +125,7 @@ export default function OwnerDashboardPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-mono sm:text-2xl font-bold">Your businesses</h2>
               <Link
                 href="/owner/business-form"

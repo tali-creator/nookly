@@ -157,7 +157,7 @@ export default function AccountShell({
       )}
 
       {/* sidebar-account.html + content grid */}
-      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
+      <div className="mx-auto grid grid-cols-1 max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
         <aside className="hidden lg:flex lg:flex-col">
           <div className="mb-3 hidden rounded-2xl bg-primary/10 p-4 lg:block">
             <p className="text-xs font-semibold uppercase tracking-wider text-primary-deep">

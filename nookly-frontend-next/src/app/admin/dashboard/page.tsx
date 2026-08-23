@@ -160,15 +160,15 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="font-mono text-xl font-bold">Business moderation queue</h2>
-              <div className="flex overflow-hidden rounded-xl border border-border">
+              <div className="flex overflow-x-auto rounded-xl border border-border">
                 {TABS.map((t) => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => switchTab(t)}
-                    className={`px-3 py-2 text-xs font-bold ${
+                    className={`whitespace-nowrap px-3 py-2 text-xs font-bold ${
                       status === t ? "bg-primary/15 text-primary" : ""
                     }`}
                   >
