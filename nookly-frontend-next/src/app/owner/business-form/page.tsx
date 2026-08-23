@@ -568,8 +568,8 @@ function BusinessFormInner() {
 
           {/* Opening hours */}
           <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-mono text-xl font-bold">Opening hours</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-mono text-xl font-bold">Opening hours</h2>
               <span className="text-xs text-muted-foreground">Submit all 7 days at once</span>
             </div>
             <div className="mt-4 flex flex-col divide-y divide-border">
@@ -585,23 +585,23 @@ function BusinessFormInner() {
                     />
                     Closed
                   </label>
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
                     <input
                       type="time"
                       disabled={h.isClosed}
                       value={h.openTime ?? ""}
                       onChange={(e) => updateHour(h.dayOfWeek, { openTime: e.target.value })}
-                      className="rounded-xl border border-border bg-background px-3 py-2 outline-none disabled:opacity-50"
-                    />
-                    <span>to</span>
+                      className="w-full flex-1 min-w-0 rounded-xl border border-border bg-background px-3 py-2 outline-none disabled:opacity-50"
+                      />
+                      <span>to</span>
                     <input
                       type="time"
                       disabled={h.isClosed}
                       value={h.closeTime ?? ""}
                       onChange={(e) => updateHour(h.dayOfWeek, { closeTime: e.target.value })}
-                      className="rounded-xl border border-border bg-background px-3 py-2 outline-none disabled:opacity-50"
-                    />
-                  </div>
+                      className="w-full flex-1 min-w-0 rounded-xl border border-border bg-background px-3 py-2 outline-none disabled:opacity-50"
+                      />
+                    </div>
                 </div>
               ))}
             </div>
@@ -668,8 +668,8 @@ function BusinessFormInner() {
 
           {/* Services & prices */}
           <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-mono text-xl font-bold">Services &amp; prices</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-mono text-xl font-bold">Services &amp; prices</h2>
               <button
                 type="button"
                 onClick={addService}
@@ -704,7 +704,7 @@ function BusinessFormInner() {
                       )}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <input
                           className="svc-name min-w-0 flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm"
                           value={svc.name}
