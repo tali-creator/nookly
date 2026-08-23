@@ -60,14 +60,8 @@ export default function KycPage() {
   const homeActive = proofType === "HOME" || proofType === "BOTH";
   const workshopActive = proofType === "WORKSHOP" || proofType === "BOTH";
   /* Exact class strings from kyc.html syncProofFields() for each mode. */
-  const homeWrapClass =
-    proofType === "WORKSHOP"
-      ? "flex-col gap-2 text-sm font-semibold"
-      : "flex gap-2 text-sm font-semibold";
-  const workshopWrapClass =
-    proofType === "HOME"
-      ? "flex-col gap-2 text-sm font-semibold sm:flex"
-      : "flex gap-2 text-sm font-semibold sm:flex";
+  const homeWrapClass = "flex flex-col gap-2 text-sm font-semibold";
+  const workshopWrapClass = "flex flex-col gap-2 text-sm font-semibold";
 
   const isVerified = submission?.status === "VERIFIED";
 
@@ -83,7 +77,7 @@ export default function KycPage() {
           maxLength={11}
           name="nin"
           placeholder="11 digits"
-          className="rounded-xl border border-input bg-background px-4 py-3 font-mono font-normal outline-none focus:ring-2 focus:ring-primary/40"
+          className="w-full rounded-xl border border-input bg-background px-4 py-3 font-mono font-normal outline-none focus:ring-2 focus:ring-primary/40"
         />
       </label>
 
@@ -134,7 +128,7 @@ export default function KycPage() {
             type="file"
             name="selfie"
             accept="image/png,image/jpeg,image/webp"
-            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-semibold">
@@ -143,7 +137,7 @@ export default function KycPage() {
             type="file"
             name="certificate"
             accept="image/png,image/jpeg,image/webp"
-            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
           />
         </label>
         <label className={homeWrapClass}>
@@ -153,7 +147,7 @@ export default function KycPage() {
             type="file"
             name="proofOfAddressHome"
             accept="image/png,image/jpeg,image/webp"
-            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
           />
         </label>
         <label className={workshopWrapClass}>
@@ -163,7 +157,7 @@ export default function KycPage() {
             type="file"
             name="proofOfAddressWorkshop"
             accept="image/png,image/jpeg,image/webp"
-            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
           />
         </label>
       </div>
@@ -319,7 +313,7 @@ export default function KycPage() {
               onClick={() => setModalOpen(false)}
             >
               <div
-                className="relative mt-16 w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl"
+                className="relative mt-20 w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button

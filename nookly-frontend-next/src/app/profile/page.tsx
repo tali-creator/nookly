@@ -440,7 +440,7 @@ export default function ProfilePage() {
                 onClick={closeEdit}
               >
                 <div
-                  className="relative mt-16 w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl"
+                  className="relative mt-20 w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
