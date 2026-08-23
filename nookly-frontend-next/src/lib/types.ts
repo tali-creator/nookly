@@ -22,6 +22,7 @@ export interface ServiceItem {
   name: string;
   description?: string | null;
   price: string;
+  imageUrl?: string | null;
   durationMin?: number | null;
 }
 
