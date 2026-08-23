@@ -237,7 +237,7 @@ export default function NotificationBell() {
 
       <div
         onClick={handlePanelClick}
-        className={`absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-card shadow-lg ${
+        className={`fixed inset-x-4 top-20 z-50 mt-2 w-auto overflow-hidden rounded-2xl border border-border bg-card shadow-lg lg:absolute lg:inset-x-auto lg:right-0 lg:top-full lg:mt-2 lg:w-80 ${
           open ? "" : "hidden"
         }`}
       >
