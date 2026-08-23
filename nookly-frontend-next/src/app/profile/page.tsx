@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AccountShell from "@/components/AccountShell";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
@@ -221,14 +222,16 @@ export default function ProfilePage() {
           <div className="flex flex-col gap-6">
             {/* Profile header */}
             <div className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex flex-wrap items-center gap-4 border-b border-border pb-6">
+              <div className="flex flex-col sm:flex-wrapalso add  items-center gap-4 border-b border-border pb-6">
                 <div className="relative">
                   {profile?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={imageUrl(profile.avatarUrl) || ""}
                       alt="Avatar"
+                      width={80}
+                      height={80}
                       className="size-20 rounded-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="flex size-20 items-center justify-center rounded-full bg-primary/20 font-mono text-2xl font-bold text-primary">

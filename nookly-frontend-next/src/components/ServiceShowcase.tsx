@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Category } from "@/lib/types";
+import Image from "next/image";
 import { categoryImage, categoryDescription } from "@/lib/categories";
 
 const ROTATE_MS = 10000;
@@ -9,7 +10,7 @@ const ROTATE_MS = 10000;
 export default function ServiceShowcase({ categories }: { categories: Category[] }) {
   const slides = categories
     .map((c) => ({ category: c, img: categoryImage(c.name) }))
-    .filter((s) => s.img);
+    .filter((s): s is { category: Category; img: string } => Boolean(s.img));
 
   const [index, setIndex] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -41,9 +42,8 @@ export default function ServiceShowcase({ categories }: { categories: Category[]
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {slides.map((s) => (
-          <div key={s.category.id} className="relative h-full w-full shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={s.img} alt={s.category.name} className="absolute inset-0 h-full w-full object-cover" />
+            <div key={s.category.id} className="relative h-full w-full shrink-0">
+              <Image src={s.img} alt={s.category.name} fill sizes="100vw" className="object-cover" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent pb-6 pl-6 pr-16 pt-14">
               <p className="text-lg font-bold leading-tight text-white">{s.category.name}</p>
               <p className="mt-1 text-sm leading-snug text-white/90">{categoryDescription(s.category.name)}</p>

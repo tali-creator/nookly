@@ -10,6 +10,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
@@ -613,8 +614,7 @@ function BusinessFormInner() {
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {photos.map((p) => (
                 <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={assetUrl(p.url) as string} alt="Business photo" className="h-full w-full object-cover" />
+                  <Image src={assetUrl(p.url) as string} alt="Business photo" fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" unoptimized />
                   <button
                     type="button"
                     onClick={() => deletePhoto(p)}
@@ -627,8 +627,7 @@ function BusinessFormInner() {
               ))}
               {pendingPhotos.map((p, idx) => (
                 <div key={idx} className="relative aspect-square overflow-hidden rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.preview} alt="Business photo" className="h-full w-full object-cover" />
+                  <Image src={p.preview} alt="Business photo" fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" unoptimized />
                   <button
                     type="button"
                     onClick={() => setPendingPhotos((prev) => prev.filter((_, i) => i !== idx))}
@@ -688,8 +687,7 @@ function BusinessFormInner() {
                     <div className="relative size-14 shrink-0">
                       {img ? (
                         <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt="Service photo" className="size-14 rounded-lg object-cover" />
+                          <Image src={img} alt="Service photo" width={56} height={56} className="size-14 rounded-lg object-cover" unoptimized />
                           <button
                             type="button"
                             onClick={() => onServiceRemovePhoto(svc)}

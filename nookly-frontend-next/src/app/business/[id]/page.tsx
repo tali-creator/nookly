@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Header from "@/components/Header";
 import { apiGet } from "@/lib/api";
 import { assetUrl } from "@/lib/config";
@@ -46,11 +47,13 @@ export default async function BusinessPage({
         <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
           <div className="relative h-56 w-full bg-muted">
             {business.photos[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={assetUrl(business.photos[0].url) as string}
                 alt={business.name}
-                className="h-full w-full object-cover"
+                fill
+                sizes="100vw"
+                className="object-cover"
+                unoptimized
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -148,12 +151,14 @@ export default async function BusinessPage({
             <h2 className="mb-3 text-lg font-semibold">Gallery</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {business.photos.map((p) => (
-                <div key={p.id} className="overflow-hidden rounded-xl border border-border bg-card">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card">
+                  <Image
                     src={assetUrl(p.url) as string}
                     alt={business.name}
-                    className="aspect-square w-full object-cover"
+                    fill
+                    sizes="(max-width: 640px) 50vw, 33vw"
+                    className="object-cover"
+                    unoptimized
                   />
                 </div>
               ))}

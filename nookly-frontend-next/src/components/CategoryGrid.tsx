@@ -1,6 +1,7 @@
 "use client";
 
 import type { Category } from "@/lib/types";
+import Image from "next/image";
 import { categoryImage } from "@/lib/categories";
 
 const CATEGORY_GLYPHS = ["✦", "⌁", "↗", "⌂", "▱", "✳"];
@@ -40,7 +41,7 @@ export default function CategoryGrid({
               className={`relative flex aspect-[1.55/1] flex-col justify-end overflow-hidden rounded-2xl p-0 text-left transition hover:-translate-y-1 hover:shadow-md ${ring}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <Image src={img} alt="" fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw" className="object-cover" />
               <span className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
               <span className="relative px-4 pb-3 pt-6 text-sm font-bold leading-tight text-white">
                 {category.name}

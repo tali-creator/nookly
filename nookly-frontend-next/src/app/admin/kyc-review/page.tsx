@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { API_BASE_URL } from "@/lib/config";
 import { apiGet, apiPatch } from "@/lib/api";
@@ -244,11 +245,13 @@ export default function AdminKycReviewPage() {
             {docState ? (
               <div className="mt-4">
                 {docState.url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element -- streamed KYC document blob */
-                  <img
+                  <Image
                     src={docState.url}
                     alt={docState.field}
+                    width={600}
+                    height={800}
                     className="mx-auto max-h-96 rounded-xl border border-border object-contain"
+                    unoptimized
                   />
                 ) : docState.failed ? (
                   <div className="rounded-xl border border-dashed border-border py-10 text-center text-muted-foreground">
