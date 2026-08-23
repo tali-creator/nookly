@@ -45,6 +45,7 @@ export default function MarketplaceShell({
   sidebar?: "customer" | "admin";
 }) {
   const [user, setUser] = useState<User | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navItems = sidebar === "admin" ? ADMIN_NAV_ITEMS : NAV_ITEMS;
 
   useEffect(() => {
@@ -96,9 +97,7 @@ export default function MarketplaceShell({
             <NotificationBell />
             <Link
               href="/profile"
-              className={`items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground sm:flex ${
-                user && user.email ? "" : "hidden"
-              }`}
+              className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground lg:flex"
             >
               <svg className="size-4" aria-hidden="true">
                 <use href="#i-user-round" />
@@ -108,17 +107,73 @@ export default function MarketplaceShell({
             <Link
               href="/owner/dashboard"
               aria-label="Your workspace"
-              className="flex size-9 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary"
+              className="hidden size-9 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary lg:flex"
             >
               {avatarLetter}
             </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              className="flex size-9 items-center justify-center rounded-xl border border-border text-foreground lg:hidden"
+            >
+              <svg className="size-5" aria-hidden="true">
+                <use href="#i-menu" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
 
+      {/* Mobile nav dropdown (replaces the horizontal scroll tabs on small screens) */}
+      {menuOpen && (
+        <div className="border-b border-border bg-background lg:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4">
+            <div className="mb-2 rounded-2xl bg-primary/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary-deep">
+                Nookly workspace
+              </p>
+              <p className="mt-2 font-bold text-primary-deep">{name}</p>
+              <p className="text-sm text-primary-deep/80">{roleLabel(user)}</p>
+            </div>
+            {navItems.map((item) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
+                  active === item.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <svg className="size-4" aria-hidden="true">
+                  <use href={`#${item.icon}`} />
+                </svg>
+                {item.label}
+              </Link>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                handleSignOut();
+              }}
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <svg className="size-4" aria-hidden="true">
+                <use href="#i-log-out" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* sidebar-marketplace.html + content grid */}
       <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[220px_1fr] lg:px-8 lg:py-12">
-        <aside className="flex gap-2 overflow-x-auto lg:flex-col">
+        <aside className="hidden lg:flex lg:flex-col">
           <div className="mb-3 hidden rounded-2xl bg-primary/10 p-4 lg:block">
             <p className="text-xs font-semibold uppercase tracking-wider text-primary-deep">
               Nookly workspace
