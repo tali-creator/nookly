@@ -16,7 +16,6 @@ const NAV_ITEMS = [
   { key: "favorites", href: "/favorites", icon: "i-heart", label: "Favorites" },
   { key: "owner", href: "/owner/dashboard", icon: "i-store", label: "My businesses" },
   { key: "messages", href: "/owner/messages", icon: "i-message-circle", label: "Messages" },
-  { key: "kyc", href: "/owner/kyc", icon: "i-shield-check", label: "Verification" },
   { key: "notifications", href: "/notifications", icon: "i-bell", label: "Notifications" },
   { key: "profile", href: "/profile", icon: "i-user-round", label: "Profile" },
 ];

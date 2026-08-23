@@ -11,7 +11,19 @@ import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
 import { imageUrl, initials } from "@/lib/helpers";
 import { ApiError } from "@/lib/api";
-import type { ProfileData, ProfileBusiness } from "@/lib/types";
+import type { ProfileData, ProfileBusiness, KycSubmission } from "@/lib/types";
+
+const PROOF_LABELS: Record<string, string> = {
+  HOME: "Home address",
+  WORKSHOP: "Workshop address",
+  BOTH: "Home & workshop address",
+};
+
+const CONTACT_LABELS: Record<string, string> = {
+  PHONE: "Phone",
+  WHATSAPP: "WhatsApp",
+  EMAIL: "Email",
+};
 
 const KYC_STYLES: Record<string, string> = {
   NOT_SUBMITTED: "bg-muted text-muted-foreground",
@@ -67,10 +79,12 @@ function roleText(role: string): string {
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [kyc, setKyc] = useState<KycSubmission | null>(null);
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(true);
   const [saving, setSaving] = useState(false);
   const [bioCount, setBioCount] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
 
   /* Form field state */
   const [displayName, setDisplayName] = useState("");
@@ -112,6 +126,12 @@ export default function ProfilePage() {
       const res = await apiGet<{ profile: ProfileData }>("/profile");
       setProfile(res.data.profile);
       fillForm(res.data.profile);
+      try {
+        const kres = await apiGet<{ submission: KycSubmission | null }>("/kyc");
+        setKyc(kres.data.submission ?? null);
+      } catch {
+        setKyc(null);
+      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not load your profile.");
       setMessageIsError(true);
@@ -151,6 +171,7 @@ export default function ProfilePage() {
       fillForm(res.data.profile);
       setMessage("Profile saved.");
       setMessageIsError(false);
+      setEditOpen(false);
     } catch (err) {
       const f = err instanceof ApiError ? err.fields || {} : {};
       const first =
@@ -195,6 +216,18 @@ export default function ProfilePage() {
   const kycStatus = profile?.kycStatus || "NOT_SUBMITTED";
   const joined = profile?.createdAt ? new Date(profile.createdAt) : null;
   const businesses: ProfileBusiness[] = profile?.businesses || [];
+
+  const socials: [string, string][] = [
+    ["Instagram", profile?.socialHandles?.instagram || ""],
+    ["Facebook", profile?.socialHandles?.facebook || ""],
+    ["Twitter / X", profile?.socialHandles?.twitter || ""],
+    ["TikTok", profile?.socialHandles?.tiktok || ""],
+  ].filter(([, v]) => Boolean(v)) as [string, string][];
+
+  function closeEdit() {
+    if (profile) fillForm(profile);
+    setEditOpen(false);
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -278,166 +311,268 @@ export default function ProfilePage() {
               </div>
 
               {/* KYC status */}
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background p-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <svg className="size-5" aria-hidden="true">
-                      <use href="#i-shield-check" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">Verification</p>
-                    <p className="text-xs text-muted-foreground">
-                      Confirm your identity to list businesses
-                    </p>
+              <div className="mt-6 rounded-xl border border-border bg-background p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <svg className="size-5" aria-hidden="true">
+                        <use href="#i-shield-check" />
+                      </svg>
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">Verification</p>
+                      <p className="text-xs text-muted-foreground">
+                        Confirm your identity to list businesses
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                        KYC_STYLES[kycStatus] || KYC_STYLES.NOT_SUBMITTED
+                      }`}
+                    >
+                      {kycStatus === "VERIFIED" ? (
+                        <svg className="size-4" aria-hidden="true">
+                          <use href="#i-check-circle-2" />
+                        </svg>
+                      ) : null}
+                      {KYC_LABELS[kycStatus] || kycStatus}
+                    </span>
+                    <Link
+                      href="/owner/kyc"
+                      className={`rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:border-primary ${
+                        kycStatus === "REJECTED" ? "border-red-300 text-red-600" : ""
+                      }`}
+                    >
+                      {KYC_LINK_TEXT[kycStatus] || "Manage"}
+                    </Link>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
-                      KYC_STYLES[kycStatus] || KYC_STYLES.NOT_SUBMITTED
-                    }`}
-                  >
-                    {kycStatus === "VERIFIED" ? (
-                      <svg className="size-4" aria-hidden="true">
-                        <use href="#i-check-circle-2" />
-                      </svg>
-                    ) : null}
-                    {KYC_LABELS[kycStatus] || kycStatus}
-                  </span>
-                  <Link
-                    href="/owner/kyc"
-                    className={`rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:border-primary ${
-                      kycStatus === "REJECTED" ? "border-red-300 text-red-600" : ""
-                    }`}
-                  >
-                    {KYC_LINK_TEXT[kycStatus] || "Manage"}
-                  </Link>
-                </div>
+                {kyc ? (
+                  <dl className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        NIN
+                      </dt>
+                      <dd className="mt-1 font-mono text-sm">{kyc.ninMasked}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Proof of address
+                      </dt>
+                      <dd className="mt-1 text-sm">
+                        {PROOF_LABELS[kyc.proofOfAddressType] || kyc.proofOfAddressType}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : null}
               </div>
             </div>
 
-            {/* Editable profile */}
-            <form
-              onSubmit={handleSave}
-              className="rounded-2xl border border-border bg-card p-6"
-            >
-              <h3 className="mb-5 font-mono text-lg font-bold">Profile details</h3>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm font-semibold">
-                  Display name
-                  <input
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    maxLength={120}
-                    className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </label>
-                <label className="flex flex-col gap-2 text-sm font-semibold">
-                  Email
-                  <input
-                    value={email}
-                    disabled
-                    className="rounded-xl border border-input bg-background px-4 py-3 font-normal opacity-60 outline-none"
-                  />
-                </label>
-                <label className="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
-                  <span className="flex items-baseline justify-between">
-                    Bio<small className="font-normal text-muted-foreground">{bioCount} / 300</small>
-                  </span>
-                  <textarea
-                    value={bio}
-                    onChange={(e) => {
-                      setBio(e.target.value);
-                      setBioCount(e.target.value.length);
-                    }}
-                    rows={3}
-                    maxLength={300}
-                    placeholder="A short line about you — shown to customers and providers."
-                    className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </label>
-                <label className="flex flex-col gap-2 text-sm font-semibold">
-                  Phone
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+234…"
-                    className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </label>
-                <label className="flex flex-col gap-2 text-sm font-semibold">
-                  WhatsApp number
-                  <input
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    placeholder="+234…"
-                    className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </label>
-                <fieldset className="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
-                  <legend className="mb-1">Preferred contact method</legend>
-                  <div className="flex flex-wrap gap-3">
-                    {[
-                      ["PHONE", "Phone"],
-                      ["WHATSAPP", "WhatsApp"],
-                      ["EMAIL", "Email"],
-                      ["", "No preference"],
-                    ].map(([value, label]) => (
-                      <label
-                        key={label}
-                        className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-normal"
-                      >
-                        <input
-                          type="radio"
-                          name="contactMethod"
-                          value={value}
-                          checked={contactMethod === value}
-                          onChange={() => setContactMethod(value)}
-                        />{" "}
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                <div className="sm:col-span-2">
-                  <p className="text-sm font-semibold">Social handles</p>
-                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                    <input
-                      value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
-                      placeholder="Instagram"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    <input
-                      value={facebook}
-                      onChange={(e) => setFacebook(e.target.value)}
-                      placeholder="Facebook"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    <input
-                      value={twitter}
-                      onChange={(e) => setTwitter(e.target.value)}
-                      placeholder="Twitter / X"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    <input
-                      value={tiktok}
-                      onChange={(e) => setTiktok(e.target.value)}
-                      placeholder="TikTok"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-                </div>
+            {/* Profile details (read-only) */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-mono text-lg font-bold">Profile details</h3>
                 <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:opacity-90 sm:col-span-2"
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:border-primary"
                 >
-                  {saving ? "Saving…" : "Save changes"}
+                  Edit profile
                 </button>
               </div>
-            </form>
+              <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Name
+                  </dt>
+                  <dd className="mt-1 text-sm">{profile?.displayName || profile?.email || "—"}</dd>
+                </div>
+                {profile?.whatsappNumber ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      WhatsApp
+                    </dt>
+                    <dd className="mt-1 text-sm">{profile.whatsappNumber}</dd>
+                  </div>
+                ) : null}
+                {profile?.phone ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Phone
+                    </dt>
+                    <dd className="mt-1 text-sm">{profile.phone}</dd>
+                  </div>
+                ) : null}
+                {profile?.preferredContactMethod ? (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Preferred contact
+                    </dt>
+                    <dd className="mt-1 text-sm">
+                      {CONTACT_LABELS[profile.preferredContactMethod] ||
+                        profile.preferredContactMethod}
+                    </dd>
+                  </div>
+                ) : null}
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Bio
+                  </dt>
+                  <dd className="mt-1 text-sm">{profile?.bio || "No bio yet."}</dd>
+                </div>
+                {socials.map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {label}
+                    </dt>
+                    <dd className="mt-1 text-sm">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            {/* Edit profile modal */}
+            {editOpen ? (
+              <div
+                className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4"
+                onClick={closeEdit}
+              >
+                <div
+                  className="relative mt-16 w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={closeEdit}
+                    aria-label="Close"
+                    className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground hover:bg-muted"
+                  >
+                    <svg className="size-5" aria-hidden="true">
+                      <use href="#i-x" />
+                    </svg>
+                  </button>
+                  <h3 className="mb-5 font-mono text-lg font-bold">Edit profile</h3>
+                  <form onSubmit={handleSave} className="flex flex-col gap-5">
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <label className="flex flex-col gap-2 text-sm font-semibold">
+                        Display name
+                        <input
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          maxLength={120}
+                          className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-semibold">
+                        Email
+                        <input
+                          value={email}
+                          disabled
+                          className="rounded-xl border border-input bg-background px-4 py-3 font-normal opacity-60 outline-none"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
+                        <span className="flex items-baseline justify-between">
+                          Bio<small className="font-normal text-muted-foreground">{bioCount} / 300</small>
+                        </span>
+                        <textarea
+                          value={bio}
+                          onChange={(e) => {
+                            setBio(e.target.value);
+                            setBioCount(e.target.value.length);
+                          }}
+                          rows={3}
+                          maxLength={300}
+                          placeholder="A short line about you — shown to customers and providers."
+                          className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-semibold">
+                        Phone
+                        <input
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+234…"
+                          className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-semibold">
+                        WhatsApp number
+                        <input
+                          value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          placeholder="+234…"
+                          className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </label>
+                      <fieldset className="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
+                        <legend className="mb-1">Preferred contact method</legend>
+                        <div className="flex flex-wrap gap-3">
+                          {[
+                            ["PHONE", "Phone"],
+                            ["WHATSAPP", "WhatsApp"],
+                            ["EMAIL", "Email"],
+                            ["", "No preference"],
+                          ].map(([value, label]) => (
+                            <label
+                              key={label}
+                              className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm font-normal"
+                            >
+                              <input
+                                type="radio"
+                                name="contactMethod"
+                                value={value}
+                                checked={contactMethod === value}
+                                onChange={() => setContactMethod(value)}
+                              />{" "}
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                      <div className="sm:col-span-2">
+                        <p className="text-sm font-semibold">Social handles</p>
+                        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                          <input
+                            value={instagram}
+                            onChange={(e) => setInstagram(e.target.value)}
+                            placeholder="Instagram"
+                            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                          <input
+                            value={facebook}
+                            onChange={(e) => setFacebook(e.target.value)}
+                            placeholder="Facebook"
+                            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                          <input
+                            value={twitter}
+                            onChange={(e) => setTwitter(e.target.value)}
+                            placeholder="Twitter / X"
+                            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                          <input
+                            value={tiktok}
+                            onChange={(e) => setTiktok(e.target.value)}
+                            placeholder="TikTok"
+                            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:opacity-90 sm:col-span-2"
+                      >
+                        {saving ? "Saving…" : "Save changes"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            ) : null}
 
             {/* Account */}
             <div className="rounded-2xl border border-border bg-card p-6">

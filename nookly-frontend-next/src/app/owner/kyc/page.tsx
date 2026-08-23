@@ -25,6 +25,7 @@ export default function KycPage() {
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     ensureSeedFromQuery();
@@ -68,6 +69,115 @@ export default function KycPage() {
       ? "flex-col gap-2 text-sm font-semibold sm:flex"
       : "flex gap-2 text-sm font-semibold sm:flex";
 
+  const isVerified = submission?.status === "VERIFIED";
+
+  /* The KYC form, reused inline (initial submit) and inside the modal (update). */
+  const formInner = (
+    <>
+      <label className="flex flex-col gap-2 text-sm font-semibold">
+        National ID number (NIN)
+        <input
+          required
+          inputMode="numeric"
+          pattern="[0-9]{11}"
+          maxLength={11}
+          name="nin"
+          placeholder="11 digits"
+          className="rounded-xl border border-input bg-background px-4 py-3 font-mono font-normal outline-none focus:ring-2 focus:ring-primary/40"
+        />
+      </label>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold">Proof of address type</span>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
+            <input
+              type="radio"
+              name="proofOfAddressType"
+              value="HOME"
+              checked={proofType === "HOME"}
+              onChange={() => syncProofFields("HOME")}
+              className="accent-primary"
+            />{" "}
+            Home address
+          </label>
+          <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
+            <input
+              type="radio"
+              name="proofOfAddressType"
+              value="WORKSHOP"
+              checked={proofType === "WORKSHOP"}
+              onChange={() => syncProofFields("WORKSHOP")}
+              className="accent-primary"
+            />{" "}
+            Workshop address
+          </label>
+          <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
+            <input
+              type="radio"
+              name="proofOfAddressType"
+              value="BOTH"
+              checked={proofType === "BOTH"}
+              onChange={() => syncProofFields("BOTH")}
+              className="accent-primary"
+            />{" "}
+            Both
+          </label>
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-semibold">
+          Selfie photo
+          <input
+            required
+            type="file"
+            name="selfie"
+            accept="image/png,image/jpeg,image/webp"
+            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-semibold">
+          Certificate of registration (optional)
+          <input
+            type="file"
+            name="certificate"
+            accept="image/png,image/jpeg,image/webp"
+            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+          />
+        </label>
+        <label className={homeWrapClass}>
+          Home proof of address
+          <input
+            required={homeActive}
+            type="file"
+            name="proofOfAddressHome"
+            accept="image/png,image/jpeg,image/webp"
+            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+          />
+        </label>
+        <label className={workshopWrapClass}>
+          Workshop proof of address
+          <input
+            required={workshopActive}
+            type="file"
+            name="proofOfAddressWorkshop"
+            accept="image/png,image/jpeg,image/webp"
+            className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
+          />
+        </label>
+      </div>
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:opacity-90"
+      >
+        {submitting ? "Submitting…" : "Submit verification"}
+      </button>
+    </>
+  );
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("");
@@ -81,6 +191,7 @@ export default function KycPage() {
       form.reset();
       syncProofFields("HOME");
       await loadStatus();
+      setModalOpen(false);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Submission failed. Please try again.");
       setMessageIsError(true);
@@ -169,117 +280,69 @@ export default function KycPage() {
 
           <div className="flex flex-col gap-6">
             <div className="rounded-2xl border border-border bg-card p-6">
-              <h2 className="font-mono text-xl font-bold">Submit verification</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Upload a clear selfie, your NIN, and proof of address. Documents are
-                encrypted at rest on our private storage.
-              </p>
-
-              <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
-                <label className="flex flex-col gap-2 text-sm font-semibold">
-                  National ID number (NIN)
-                  <input
-                    required
-                    inputMode="numeric"
-                    pattern="[0-9]{11}"
-                    maxLength={11}
-                    name="nin"
-                    placeholder="11 digits"
-                    className="rounded-xl border border-input bg-background px-4 py-3 font-mono font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </label>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold">Proof of address type</span>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
-                      <input
-                        type="radio"
-                        name="proofOfAddressType"
-                        value="HOME"
-                        checked={proofType === "HOME"}
-                        onChange={() => syncProofFields("HOME")}
-                        className="accent-primary"
-                      />{" "}
-                      Home address
-                    </label>
-                    <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
-                      <input
-                        type="radio"
-                        name="proofOfAddressType"
-                        value="WORKSHOP"
-                        checked={proofType === "WORKSHOP"}
-                        onChange={() => syncProofFields("WORKSHOP")}
-                        className="accent-primary"
-                      />{" "}
-                      Workshop address
-                    </label>
-                    <label className="flex flex-1 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
-                      <input
-                        type="radio"
-                        name="proofOfAddressType"
-                        value="BOTH"
-                        checked={proofType === "BOTH"}
-                        onChange={() => syncProofFields("BOTH")}
-                        className="accent-primary"
-                      />{" "}
-                      Both
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="flex flex-col gap-2 text-sm font-semibold">
-                    Selfie photo
-                    <input
-                      required
-                      type="file"
-                      name="selfie"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-semibold">
-                    Certificate of registration (optional)
-                    <input
-                      type="file"
-                      name="certificate"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </label>
-                  <label className={homeWrapClass}>
-                    Home proof of address
-                    <input
-                      required={homeActive}
-                      type="file"
-                      name="proofOfAddressHome"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </label>
-                  <label className={workshopWrapClass}>
-                    Workshop proof of address
-                    <input
-                      required={workshopActive}
-                      type="file"
-                      name="proofOfAddressWorkshop"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="rounded-xl border border-input bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:opacity-90"
-                >
-                  {submitting ? "Submitting…" : "Submit verification"}
-                </button>
-              </form>
+              {isVerified ? (
+                <>
+                  <h2 className="font-mono text-xl font-bold">Verification details</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Your identity is verified. If any of your verification details have
+                    changed, you can update them below.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(true)}
+                    className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground hover:opacity-90"
+                  >
+                    <svg className="size-4" aria-hidden="true">
+                      <use href="#i-circle-check" />
+                    </svg>
+                    Update KYC details
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h2 className="font-mono text-xl font-bold">Submit verification</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Upload a clear selfie, your NIN, and proof of address. Documents are
+                    encrypted at rest on our private storage.
+                  </p>
+                  <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+                    {formInner}
+                  </form>
+                </>
+              )}
             </div>
           </div>
+
+          {isVerified && modalOpen ? (
+            <div
+              className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4"
+              onClick={() => setModalOpen(false)}
+            >
+              <div
+                className="relative mt-16 w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  aria-label="Close"
+                  className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground hover:bg-muted"
+                >
+                  <svg className="size-5" aria-hidden="true">
+                    <use href="#i-x" />
+                  </svg>
+                </button>
+                <h2 className="font-mono text-xl font-bold">Update verification</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Upload a clear selfie, your NIN, and proof of address. Documents are
+                  encrypted at rest on our private storage.
+                </p>
+                <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
+                  {formInner}
+                </form>
+              </div>
+            </div>
+          ) : null}
         </section>
       </MarketplaceShell>
     </main>
