@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MarketplaceShell from "@/components/MarketplaceShell";
+import { useConfirm } from "@/components/ConfirmModal";
 import { apiGet, apiPatch } from "@/lib/api";
 import { clearSession, ensureSeedFromQuery, getUser, getToken } from "@/lib/auth";
 import type { AdminBusinessListResponse } from "@/lib/types";
@@ -24,6 +25,7 @@ const QUEUE_MESSAGE =
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [status, setStatus] = useState<(typeof TABS)[number]>("PENDING");
   const [queue, setQueue] = useState<{ items?: AdminBusinessListResponse["data"]; error?: boolean } | null>(null);
   const [stats, setStats] = useState<{ PENDING: number | null; APPROVED: number | null; SUSPENDED: number | null }>({
@@ -102,24 +104,54 @@ export default function AdminDashboardPage() {
     act(b, "approve");
   }
 
-  function reject(b: { id: string }) {
-    const reason = window.prompt("Rejection reason (10+ characters):");
-    if (reason === null) return;
-    act(b, "reject", { reason });
+  async function reject(b: { id: string }) {
+    const res = await confirm({
+      title: "Reject business",
+      message: "This listing will be hidden from the directory and the owner is notified.",
+      confirmLabel: "Reject",
+      danger: true,
+      input: {
+        label: "Reason",
+        placeholder: "Why is this being rejected?",
+        required: true,
+        minLength: 10,
+      },
+    });
+    if (!res.confirmed) return;
+    act(b, "reject", { reason: res.value ?? "" });
   }
 
-  function suspend(b: { id: string }) {
-    const reason = window.prompt("Suspension reason (10+ characters):");
-    if (reason === null) return;
-    act(b, "suspend", { reason });
+  async function suspend(b: { id: string }) {
+    const res = await confirm({
+      title: "Suspend business",
+      message: "The owner loses marketplace access until reinstated.",
+      confirmLabel: "Suspend",
+      danger: true,
+      input: {
+        label: "Reason",
+        placeholder: "Why is this being suspended?",
+        required: true,
+        minLength: 10,
+      },
+    });
+    if (!res.confirmed) return;
+    act(b, "suspend", { reason: res.value ?? "" });
   }
 
-  function feature(b: { id: string }) {
-    const days = window.prompt("Feature duration in days (blank for indefinite):");
+  async function feature(b: { id: string }) {
+    const res = await confirm({
+      title: "Feature business",
+      message: "Boost this listing. Leave the duration blank for an indefinite feature.",
+      confirmLabel: "Feature",
+      input: { label: "Duration in days (optional)", placeholder: "e.g. 30" },
+    });
+    if (!res.confirmed) return;
+    const raw = res.value?.trim();
+    const days = raw ? parseInt(raw, 10) : NaN;
     act(
       b,
       "feature",
-      days && days.trim() !== "" ? { durationDays: parseInt(days, 10) } : {},
+      Number.isFinite(days) && days > 0 ? { durationDays: days } : {},
       false
     );
   }

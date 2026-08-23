@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MarketplaceShell from "@/components/MarketplaceShell";
+import { useConfirm } from "@/components/ConfirmModal";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
 import { clearSession, ensureSeedFromQuery, getToken, getUser } from "@/lib/auth";
 import type { AdminUserDetail, AdminUserListResponse, AdminUserRow } from "@/lib/types";
@@ -43,6 +44,7 @@ const QUEUE_MESSAGE =
 
 export default function AdminUsersPage() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [tab, setTab] = useState(TABS[0]);
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
@@ -205,14 +207,16 @@ export default function AdminUsersPage() {
   }
 
   async function archiveUser(u: { id: string; email: string }) {
-    if (
-      !window.confirm(
+    const res = await confirm({
+      title: "Archive user",
+      message:
         "Archive " +
-          u.email +
-          "? They will be locked out and hidden from the directory. This can be undone with Restore."
-      )
-    )
-      return;
+        u.email +
+        "? They will be locked out and hidden from the directory. This can be undone with Restore.",
+      confirmLabel: "Archive",
+      danger: true,
+    });
+    if (!res.confirmed) return;
     try {
       await apiDelete("/admin/users/" + u.id);
       setMessage("User archived.");
@@ -223,8 +227,12 @@ export default function AdminUsersPage() {
   }
 
   async function restoreUser(u: { id: string; email: string }) {
-    if (!window.confirm("Restore " + u.email + "? They will regain access and reappear in the directory."))
-      return;
+    const res = await confirm({
+      title: "Restore user",
+      message: "Restore " + u.email + "? They will regain access and reappear in the directory.",
+      confirmLabel: "Restore",
+    });
+    if (!res.confirmed) return;
     try {
       await apiPost("/admin/users/" + u.id + "/restore");
       setMessage("User restored.");

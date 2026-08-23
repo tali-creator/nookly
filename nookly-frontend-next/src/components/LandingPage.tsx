@@ -2,19 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import ServiceShowcase from "@/components/ServiceShowcase";
 import CategoryGrid from "@/components/CategoryGrid";
 import BusinessCard from "@/components/BusinessCard";
 import { apiGet } from "@/lib/api";
 import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import type { Category, NearbyBusiness } from "@/lib/types";
+
+// How many "Popular in your area" cards to show per breakpoint.
+const POPULAR_LIMIT_DESKTOP = 6;
+const POPULAR_LIMIT_MOBILE = 3;
 
 export default function LandingPage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
+  const [locInput, setLocInput] = useState("Lekki, Lagos");
 
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
@@ -25,6 +31,8 @@ export default function LandingPage() {
   const [nearLabel, setNearLabel] = useState("Verified businesses");
   const [locMsg, setLocMsg] = useState<{ text: string; error: boolean } | null>(null);
   const findHelpRef = useRef<HTMLButtonElement>(null);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const router = useRouter();
 
   // Debounce the search query.
   useEffect(() => {
@@ -51,7 +59,10 @@ export default function LandingPage() {
   useEffect(() => {
     let cancelled = false;
     async function run() {
-      const params = new URLSearchParams({ page: "1", limit: "20" });
+      const params = new URLSearchParams({
+        page: "1",
+        limit: String(POPULAR_LIMIT_DESKTOP),
+      });
       if (locationReady && lat != null && lng != null) {
         params.set("lat", String(lat));
         params.set("lng", String(lng));
@@ -60,7 +71,6 @@ export default function LandingPage() {
         params.set("lng", String(FALLBACK_LOCATION.lng));
       }
       params.set("radius", String(SEARCH_RADIUS_KM));
-      if (categoryId) params.set("category", categoryId);
       if (debouncedQ) params.set("q", debouncedQ);
 
       setLoading(true);
@@ -82,7 +92,7 @@ export default function LandingPage() {
     return () => {
       cancelled = true;
     };
-  }, [locationReady, lat, lng, categoryId, debouncedQ]);
+  }, [locationReady, lat, lng, debouncedQ]);
 
   function requestLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -117,19 +127,11 @@ export default function LandingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function onSelectCategory(id: string) {
-    setCategoryId((prev) => (prev === id ? null : id));
-  }
-
   function onFindHelp() {
-    if (!locationReady) {
-      setLocMsg({
-        text: "Please allow location access to search for nearby businesses.",
-        error: true,
-      });
-      return;
-    }
-    document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    if (locInput.trim()) params.set("loc", locInput.trim());
+    router.push("/search?" + params.toString());
   }
 
   return (
@@ -176,7 +178,9 @@ export default function LandingPage() {
                   </svg>
                   <input
                     type="text"
-                    defaultValue="Lekki, Lagos"
+                    value={locInput}
+                    onChange={(e) => setLocInput(e.target.value)}
+                    placeholder="Lekki, Lagos"
                     className="min-w-0 bg-transparent font-medium text-foreground outline-none"
                     aria-label="Location"
                   />
@@ -251,11 +255,7 @@ export default function LandingPage() {
               </Link>
             </div>
             {categories.length ? (
-              <CategoryGrid
-                categories={categories}
-                selectedId={categoryId}
-                onSelect={onSelectCategory}
-              />
+              <CategoryGrid categories={categories} />
             ) : (
               <div className="mt-8 rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
                 Could not load categories.
@@ -295,7 +295,9 @@ export default function LandingPage() {
                 {locationReady ? "Loading nearby businesses…" : "Loading verified businesses…"}
               </div>
             ) : providers.length ? (
-              providers.map((b) => <BusinessCard key={b.id} business={b} />)
+              providers
+                .slice(0, isDesktop ? POPULAR_LIMIT_DESKTOP : POPULAR_LIMIT_MOBILE)
+                .map((b) => <BusinessCard key={b.id} business={b} />)
             ) : (
               <div className="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
                 No businesses match that search yet. Try another service.

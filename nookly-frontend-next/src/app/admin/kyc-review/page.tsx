@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import MarketplaceShell from "@/components/MarketplaceShell";
+import { useConfirm } from "@/components/ConfirmModal";
 import { API_BASE_URL } from "@/lib/config";
 import { apiGet, apiPatch } from "@/lib/api";
 import { clearSession, ensureSeedFromQuery, getToken, getUser } from "@/lib/auth";
@@ -31,6 +32,7 @@ type Tab = (typeof TABS)[number];
 
 export default function AdminKycReviewPage() {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [status, setStatus] = useState<Tab>("PENDING");
   const [page, setPage] = useState(1);
   const pageLimit = 10;
@@ -121,8 +123,12 @@ export default function AdminKycReviewPage() {
   }
 
   async function verifySubmission(userId: string) {
-    if (!window.confirm("Verify this owner? Their businesses will be eligible for approval."))
-      return;
+    const res = await confirm({
+      title: "Verify owner",
+      message: "Their businesses will become eligible for approval.",
+      confirmLabel: "Verify",
+    });
+    if (!res.confirmed) return;
     try {
       await apiPatch("/admin/kyc/" + userId + "/verify");
       setMessage("Owner verified.");
@@ -133,10 +139,21 @@ export default function AdminKycReviewPage() {
   }
 
   async function rejectSubmission(userId: string) {
-    const reason = window.prompt("Rejection reason (10+ characters):");
-    if (reason === null) return;
+    const res = await confirm({
+      title: "Reject submission",
+      message: "The owner will be notified of the rejection.",
+      confirmLabel: "Reject",
+      danger: true,
+      input: {
+        label: "Reason",
+        placeholder: "Why is this being rejected?",
+        required: true,
+        minLength: 10,
+      },
+    });
+    if (!res.confirmed) return;
     try {
-      await apiPatch("/admin/kyc/" + userId + "/reject", { reason });
+      await apiPatch("/admin/kyc/" + userId + "/reject", { reason: res.value ?? "" });
       setMessage("Submission rejected. The owner has been notified.");
       closeDetail();
     } catch (err) {
