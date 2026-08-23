@@ -4,12 +4,18 @@
 // colored glyph tile. Existing image files are reused for the matching groups;
 // add the remaining PNGs to /public/images to light up the rest.
 export const CATEGORY_IMAGES: Record<string, string> = {
-  "food & drink": "/images/resturants-and-food.png",
+  "food & drink": "/images/restaurants-and-food.png",
   "beauty & salons": "/images/salons-and-beauty.png",
+  "fitness & sports": "/images/fitness-and-sports.png",
   "health & wellness": "/images/health-and-wellness.png",
-  "home services & repairs": "/images/repairs-and-maintainance.png",
+  "home services & repairs": "/images/repairs-and-maintenance.png",
+  "automotive": "/images/automotive.png",
+  "moving & logistics": "/images/moving-and-logistics.png",
+  "real estate & property": "/images/real-estate-and-property.png",
   "retail & shops": "/images/retail-and-shop.png",
-  "professional & business": "/images/profession-services.png",
+  "pets & vets": "/images/pets-and-vets.png",
+  "professional & business": "/images/professional-services.png",
+  "events & lifestyle": "/images/events-and-lifestyle.png",
 };
 
 export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
