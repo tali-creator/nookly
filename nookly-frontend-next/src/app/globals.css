@@ -102,6 +102,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Brand theme:
+   - Any text sitting on a green surface (buttons, badges, banners) is white.
+   - Headings default to the brand green on light surfaces (incl. admin
+     pages); they stay white when rendered on a green surface. */
+.bg-primary,
+.bg-primary-deep {
+  color: var(--primary-foreground);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--primary);
+}
+
+.bg-primary h1,
+.bg-primary h2,
+.bg-primary h3,
+.bg-primary-deep h1,
+.bg-primary-deep h2,
+.bg-primary-deep h3 {
+  color: var(--primary-foreground);
+}
+
 ::selection {
   background: oklch(0.68 0.17 126 / 0.28);
 }
