@@ -9,6 +9,8 @@ import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import { imageUrl, initials, isOpenNow } from "@/lib/helpers";
 import { formatNaira } from "@/lib/format";
 import { getDeviceId } from "@/lib/device-id";
+import { useAuthGate } from "@/components/AuthGate";
+import MessageOwnerModal from "@/components/MessageOwnerModal";
 import type { NearbyBusiness } from "@/lib/types";
 
 const CARD_TONES = [
@@ -61,8 +63,10 @@ export default function BusinessCard({
   business: NearbyBusiness;
   onFavChange?: (businessId: string, isFav: boolean) => void;
 }) {
+  const authGate = useAuthGate();
   const [isFav, setIsFav] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [msgOpen, setMsgOpen] = useState(false);
 
   useEffect(() => {
     favoriteState(business.id).then(setIsFav);
@@ -79,6 +83,7 @@ export default function BusinessCard({
 
   async function handleToggle() {
     if (busy) return;
+    if (!authGate.guard()) return;
     setBusy(true);
     const next = await toggleFavorite(business.id);
     setBusy(false);
@@ -107,6 +112,19 @@ export default function BusinessCard({
             Featured
           </span>
         ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            if (!authGate.guard()) return;
+            setMsgOpen(true);
+          }}
+          aria-label="Message this business"
+          className="absolute right-16 top-4 flex size-9 items-center justify-center rounded-full bg-background/85 transition hover:scale-105"
+        >
+          <svg className="size-4 text-foreground" aria-hidden="true">
+            <use href="#i-message-circle" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={handleToggle}
@@ -163,7 +181,7 @@ export default function BusinessCard({
         </div>
         <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
           <Link
-            href={`/owner?businessId=${business.id}`}
+            href={business.owner?.id ? `/owners/${business.owner.id}` : "/"}
             className="text-sm font-bold text-primary"
           >
             Visit owner{" "}
@@ -179,6 +197,12 @@ export default function BusinessCard({
           </Link>
         </div>
       </div>
+      <MessageOwnerModal
+        businessId={business.id}
+        businessName={business.name}
+        open={msgOpen}
+        onClose={() => setMsgOpen(false)}
+      />
     </article>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
+import BusinessActions from "@/components/BusinessActions";
 import { apiGet } from "@/lib/api";
 import { assetUrl } from "@/lib/config";
 import { formatNaira } from "@/lib/format";
@@ -91,12 +92,11 @@ export default async function BusinessPage({
               </p>
             )}
 
-            <Link
-              href="/login"
-              className="mt-5 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:opacity-90"
-            >
-              Message this business
-            </Link>
+            <BusinessActions
+              businessId={business.id}
+              ownerId={business.owner?.id}
+              businessName={business.name}
+            />
           </div>
         </div>
 

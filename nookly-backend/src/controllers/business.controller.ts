@@ -162,6 +162,7 @@ interface NearbyRow {
   isFeatured: boolean;
   ownerName: string | null;
   ownerVerified: boolean;
+  ownerId: string;
   price: string | null; // cheapest service price, Decimal -> string from SQL
 }
 
@@ -238,6 +239,7 @@ async function nearby(
         b.lat, b.lng, b.phone, b."whatsappNumber", b.timezone,
         c.name AS "categoryName",
         cover."url" AS "coverUrl",
+        u.id AS "ownerId",
         u."displayName" AS "ownerName",
         (u."kycStatus" = 'VERIFIED') AS "ownerVerified",
         -- "Currently featured" is computed at query time so expiry is always
@@ -312,7 +314,7 @@ async function nearby(
       isFeatured: row.isFeatured,
       distanceKm: Math.round(parseFloat(row.distanceKm) * 10) / 10,
       price: row.price,
-      owner: { name: row.ownerName, isVerified: row.ownerVerified },
+      owner: { id: row.ownerId, name: row.ownerName, isVerified: row.ownerVerified },
       hours: hoursByBusiness.get(row.id) ?? [],
     }));
 
@@ -349,7 +351,7 @@ async function featured(
       },
       include: {
         category: true,
-        owner: { select: { displayName: true, kycStatus: true } },
+        owner: { select: { id: true, displayName: true, kycStatus: true } },
         photos: { take: 1, orderBy: { order: "asc" } },
         hours: { orderBy: { dayOfWeek: "asc" } },
         serviceItems: { orderBy: { price: "asc" }, take: 1 },
@@ -373,6 +375,7 @@ async function featured(
       isFeatured: true,
       price: business.serviceItems[0]?.price ?? null,
       owner: {
+        id: business.owner.id,
         name: business.owner.displayName,
         isVerified: business.owner.kycStatus === "VERIFIED",
       },

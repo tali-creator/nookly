@@ -47,7 +47,7 @@ export interface NearbyBusiness {
   lng: number | null;
   timezone: string | null;
   hours: BusinessHours[];
-  owner?: { name?: string | null; isVerified?: boolean } | null;
+  owner?: { id?: string; name?: string | null; isVerified?: boolean } | null;
   whatsappNumber?: string | null;
   phone?: string | null;
 }

@@ -21,7 +21,7 @@ function toListItem(business: {
   photos: { url: string }[];
   serviceItems: { price: unknown }[];
   hours: { dayOfWeek: number; openTime: string | null; closeTime: string | null; isClosed: boolean }[];
-  owner: { displayName: string | null; kycStatus: string };
+  owner: { id: string; displayName: string | null; kycStatus: string };
   isFeatured: boolean;
 }) {
   return {
@@ -39,6 +39,7 @@ function toListItem(business: {
     isFeatured: business.isFeatured,
     price: business.serviceItems[0]?.price ?? null,
     owner: {
+      id: business.owner.id,
       name: business.owner.displayName,
       isVerified: business.owner.kycStatus === "VERIFIED",
     },
@@ -130,7 +131,7 @@ async function list(
             category: true,
             photos: { take: 1, orderBy: { order: "asc" } },
             hours: { orderBy: { dayOfWeek: "asc" } },
-            owner: { select: { displayName: true, kycStatus: true } },
+            owner: { select: { id: true, displayName: true, kycStatus: true } },
             serviceItems: { orderBy: { price: "asc" }, take: 1 },
           },
         },
