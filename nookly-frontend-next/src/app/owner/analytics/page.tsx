@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { apiGet } from "@/lib/api";
-import { clearSession, ensureSeedFromQuery, getToken, getUser } from "@/lib/auth";
+import { ensureSeedFromQuery, getToken } from "@/lib/auth";
 
 interface Biz {
   id: string;
@@ -30,12 +30,6 @@ export default function OwnerAnalyticsPage() {
   useEffect(() => {
     ensureSeedFromQuery();
     if (!getToken()) {
-      router.replace("/owner/login");
-      return;
-    }
-    const user = getUser();
-    if (!user || user.role !== "ADMIN") {
-      clearSession();
       router.replace("/owner/login");
       return;
     }
