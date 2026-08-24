@@ -26,6 +26,10 @@ export function useCurrentLocation() {
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<LocState>("prompt");
   const [error, setError] = useState<string | null>(null);
+  // Increments on every successful resolve so consumers can re-run their
+  // apply logic even when the coordinates themselves are unchanged (e.g. the
+  // owner re-detects after manually editing the address).
+  const [detectId, setDetectId] = useState(0);
 
   const request = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -42,6 +46,7 @@ export function useCurrentLocation() {
       setReady(true);
       setState("granted");
       setError(null);
+      setDetectId((n) => n + 1);
     };
     const onFail = (err: GeolocationPositionError, triedHigh: boolean) => {
       if (err.code === err.TIMEOUT && triedHigh) {
@@ -104,5 +109,5 @@ export function useCurrentLocation() {
     };
   }, [request]);
 
-  return { lat, lng, ready, state, error, request };
+  return { lat, lng, ready, state, error, request, detectId };
 }

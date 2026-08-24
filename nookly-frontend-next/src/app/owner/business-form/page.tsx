@@ -407,10 +407,12 @@ function BusinessFormInner() {
 
   // When the shared hook resolves coordinates (auto, if permission was already
   // granted, or after the owner taps "Detect my location"), fill the form and
-  // reverse-geocode the address. In edit mode we only apply once the owner
-  // explicitly asks, so we never silently overwrite saved coordinates.
+  // reverse-geocode the address. detectId increments on every successful
+  // (re)detection, so re-tapping detect after a manual edit always re-applies
+  // even when the coordinates are unchanged. In edit mode we only apply once
+  // the owner explicitly asks, so we never silently overwrite saved coords.
   useEffect(() => {
-    if (!loc.ready || loc.lat == null || loc.lng == null) return;
+    if (!loc.ready || loc.detectId === 0 || loc.lat == null || loc.lng == null) return;
     if (businessId && !detectAsked) return;
     setCoords(loc.lat, loc.lng);
     setLocationMode("auto");
@@ -428,7 +430,7 @@ function BusinessFormInner() {
         setLocStatusSafe("📍 Location detected — but the address lookup failed (" + ((err as Error).message || "network error") + "). Type your address.", "warn")
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loc.ready, loc.lat, loc.lng]);
+  }, [loc.detectId]);
 
   // Surface a helpful hint based on the current permission state (create mode).
   useEffect(() => {

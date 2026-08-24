@@ -143,9 +143,22 @@ export default function SiteHeader() {
                   </button>
                 </>
               ) : (
-                <Link href="/signup" onClick={() => setMenuOpen(false)} className="rounded-full bg-primary px-5 py-3 text-center text-white">
-                  Log in / Sign up
-                </Link>
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-full border border-border px-4 py-3 text-center text-sm font-semibold transition hover:bg-muted"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-full bg-primary px-5 py-3 text-center text-white"
+                  >
+                    Sign up
+                  </Link>
+                </>
               )}
             </div>
           </nav>
