@@ -9,6 +9,7 @@ import { apiGet } from "@/lib/api";
 import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
 import { isOpenNow } from "@/lib/helpers";
 import { NIGERIAN_CITIES } from "@/lib/locations";
+import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { NearbyBusiness } from "@/lib/types";
 
 type OpenState = "all" | "open" | "closed";
@@ -33,9 +34,7 @@ function SearchContent() {
 
   const [keywordInput, setKeywordInput] = useState(q);
 
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [locationReady, setLocationReady] = useState(false);
+  const loc = useCurrentLocation();
 
   const matchedCity = NIGERIAN_CITIES.find((c) =>
     locParam.toLowerCase().includes(c.name.toLowerCase())
@@ -52,42 +51,7 @@ function SearchContent() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [locMsg, setLocMsg] = useState<{ text: string; error: boolean } | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // Live geolocation (used when "My current location" is selected). On mobile,
-  // auto-requests often fail with PERMISSION_DENIED even when granted, so we
-  // also expose a "Use my location" button (a real user gesture) to retry.
-  const requestLocation = useCallback(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationReady(false);
-      setLocMsg({
-        text: "Location isn’t available on this device — pick a city above to narrow your search.",
-        error: false,
-      });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocationReady(true);
-        setLocMsg(null);
-      },
-      () => {
-        setLocationReady(false);
-        setLocMsg({
-          text: "We couldn’t get your location. Tap “Use my location” or pick a city above to narrow your search.",
-          error: false,
-        });
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-    );
-  }, []);
-
-  useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
 
   // Resolve the coordinates actually used for the query.
   const effective = useMemo(() => {
@@ -95,14 +59,16 @@ function SearchContent() {
       const city = NIGERIAN_CITIES.find((c) => c.id === locMode);
       if (city) return { lat: city.lat, lng: city.lng, label: city.name };
     }
-    const useLat = lat ?? FALLBACK_LOCATION.lat;
-    const useLng = lng ?? FALLBACK_LOCATION.lng;
-    return {
-      lat: useLat,
-      lng: useLng,
-      label: locationReady ? "your current location" : "Lagos (default)",
-    };
-  }, [locMode, lat, lng, locationReady]);
+    const useLat = loc.lat ?? FALLBACK_LOCATION.lat;
+    const useLng = loc.lng ?? FALLBACK_LOCATION.lng;
+    const label =
+      loc.state === "granted" && loc.ready
+        ? "your current location"
+        : loc.state === "locating"
+        ? "your current location…"
+        : "Lagos (default)";
+    return { lat: useLat, lng: useLng, label };
+  }, [locMode, loc.lat, loc.lng, loc.ready, loc.state]);
 
   const fetchPage = useCallback(
     async (pageToLoad: number): Promise<NearbyResponse> => {
@@ -275,18 +241,7 @@ function SearchContent() {
               </button>
             </form>
 
-            {locMsg ? (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary">
-                <span>{locMsg.text}</span>
-                <button
-                  type="button"
-                  onClick={requestLocation}
-                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
-                >
-                  Use my location
-                </button>
-              </div>
-            ) : (
+            {loc.state === "granted" && loc.ready ? (
               <p className="mt-3 text-sm text-muted-foreground">
                 Showing results near <strong className="text-foreground">{effective.label}</strong>
                 {q ? (
@@ -296,6 +251,28 @@ function SearchContent() {
                   </>
                 ) : null}
               </p>
+            ) : loc.state === "locating" ? (
+              <p className="mt-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground">
+                Finding your location…
+              </p>
+            ) : (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary">
+                <span>
+                  {loc.error ??
+                    (loc.state === "prompt"
+                      ? "Tap “Use my location” to allow access and find pros near you."
+                      : "Location isn’t available right now.")}
+                </span>
+                {loc.state !== "unsupported" ? (
+                  <button
+                    type="button"
+                    onClick={loc.request}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
+                  >
+                    Use my location
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         </section>

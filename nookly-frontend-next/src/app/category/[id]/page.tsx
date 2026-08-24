@@ -10,6 +10,7 @@ import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
 import { categoryDescription, categoryImage } from "@/lib/categories";
 import { isOpenNow } from "@/lib/helpers";
 import { NIGERIAN_CITIES } from "@/lib/locations";
+import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { Category, NearbyBusiness } from "@/lib/types";
 
 type OpenState = "all" | "open" | "closed";
@@ -32,9 +33,7 @@ export default function CategoryPage() {
 
   const [category, setCategory] = useState<Category | null>(null);
 
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [locationReady, setLocationReady] = useState(false);
+  const loc = useCurrentLocation();
   const [locMode, setLocMode] = useState<string>("current");
 
   const [radius, setRadius] = useState<number>(SEARCH_RADIUS_KM);
@@ -47,7 +46,6 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [locMsg, setLocMsg] = useState<{ text: string; error: boolean } | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -66,40 +64,6 @@ export default function CategoryPage() {
     };
   }, [id]);
 
-  // Geolocation. On mobile, auto-requests often fail with PERMISSION_DENIED
-  // even when granted; we keep an automatic attempt for desktop, but also
-  // expose a "Use my location" button (a real user gesture) for mobile retry.
-  const requestLocation = useCallback(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationReady(false);
-      setLocMsg({
-        text: "Location isn’t available on this device — pick a city below to see nearby businesses.",
-        error: false,
-      });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocationReady(true);
-        setLocMsg(null);
-      },
-      () => {
-        setLocationReady(false);
-        setLocMsg({
-          text: "We couldn’t get your location. Tap “Use my location” or pick a city to see nearby businesses.",
-          error: false,
-        });
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-    );
-  }, []);
-
-  useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
-
   // Resolve the coordinates actually used for the query. Falls back to a
   // selected city, then to Lagos, so results always load even without GPS.
   const effective = useMemo(() => {
@@ -109,14 +73,16 @@ export default function CategoryPage() {
         return { lat: city.lat, lng: city.lng, label: city.name };
       }
     }
-    const useLat = lat ?? FALLBACK_LOCATION.lat;
-    const useLng = lng ?? FALLBACK_LOCATION.lng;
-    return {
-      lat: useLat,
-      lng: useLng,
-      label: locationReady ? "your current location" : "Lagos (default)",
-    };
-  }, [locMode, lat, lng, locationReady]);
+    const useLat = loc.lat ?? FALLBACK_LOCATION.lat;
+    const useLng = loc.lng ?? FALLBACK_LOCATION.lng;
+    const label =
+      loc.state === "granted" && loc.ready
+        ? "your current location"
+        : loc.state === "locating"
+        ? "your current location…"
+        : "Lagos (default)";
+    return { lat: useLat, lng: useLng, label };
+  }, [locMode, loc.lat, loc.lng, loc.ready, loc.state]);
 
   const fetchPage = useCallback(
     async (pageToLoad: number): Promise<NearbyResponse> => {
@@ -216,6 +182,7 @@ export default function CategoryPage() {
   }, [items, openState, sort]);
 
   const img = category ? categoryImage(category.name) : undefined;
+  const awaitingLocation = locMode === "current" && loc.state !== "granted";
 
   return (
     <>
@@ -254,18 +221,30 @@ export default function CategoryPage() {
                 </p>
               </div>
             </div>
-            {locMsg ? (
+            {loc.state === "granted" && loc.ready ? null : loc.state ===
+              "locating" ? (
+              <p className="mt-4 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground">
+                Finding your location…
+              </p>
+            ) : (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary">
-                <span>{locMsg.text}</span>
-                <button
-                  type="button"
-                  onClick={requestLocation}
-                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
-                >
-                  Use my location
-                </button>
+                <span>
+                  {loc.error ??
+                    (loc.state === "prompt"
+                      ? "See businesses near you — tap “Use my location” to allow access and get the most relevant results."
+                      : "Location isn’t available right now.")}
+                </span>
+                {loc.state !== "unsupported" ? (
+                  <button
+                    type="button"
+                    onClick={loc.request}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
+                  >
+                    Use my location
+                  </button>
+                ) : null}
               </div>
-            ) : null}
+            )}
           </div>
         </section>
 
@@ -275,9 +254,9 @@ export default function CategoryPage() {
             <div className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground">
               <span>Location</span>
               <div className="flex gap-2">
-                <button
+                 <button
                   type="button"
-                  onClick={requestLocation}
+                  onClick={loc.request}
                   className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                   Use my location
@@ -362,11 +341,13 @@ export default function CategoryPage() {
               </div>
             ) : visible.length ? (
               visible.map((b) => <BusinessCard key={b.id} business={b} />)
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
-                No businesses match these filters yet. Try a wider distance or “all”.
-              </div>
-            )}
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
+                  {awaitingLocation
+                    ? "Enable location or pick a city above to see businesses near you."
+                    : "No businesses match these filters yet. Try a wider distance or “all”."}
+                </div>
+              )}
           </div>
 
           {/* Load more / infinite-scroll sentinel */}

@@ -291,7 +291,10 @@ export default function ProfilePage() {
                   <h2 className="flex flex-wrap items-center gap-2 font-mono text-xl font-bold">
                     {name}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p
+                    className="truncate text-sm text-muted-foreground"
+                    title={profile?.email ?? undefined}
+                  >
                     {profile ? profile.email : "Not signed in"}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">

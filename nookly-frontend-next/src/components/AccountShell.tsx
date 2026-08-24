@@ -118,7 +118,9 @@ export default function AccountShell({
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary-deep">
                   Nookly workspace
                 </p>
-                <p className="mt-2 font-bold text-primary-deep">{name}</p>
+                <p className="mt-2 truncate font-bold text-primary-deep" title={user?.email ?? undefined}>
+                  {name}
+                </p>
                 <p className="text-sm text-primary-deep/80">{roleLabel(user)}</p>
               </div>
               {NAV_ITEMS.map((item) => (
