@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import MarketplaceShell from "@/components/MarketplaceShell";
+import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
 import { assetUrl } from "@/lib/config";
@@ -98,6 +99,11 @@ function BusinessFormInner() {
   const [locationMode, setLocationMode] = useState<"idle" | "detecting" | "auto" | "manual">("idle");
   const [locStatus, setLocStatus] = useState<{ text: string; tone: "ok" | "error" | "warn" } | null>(null);
 
+  // Shared, mobile-safe location hook (probes permission, only auto-fetches
+  // when already granted, exposes request() for a real user-gesture tap).
+  const loc = useCurrentLocation();
+  const [detectAsked, setDetectAsked] = useState(false);
+
   const [hours, setHours] = useState<BusinessHours[]>(defaultHours());
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [pendingPhotos, setPendingPhotos] = useState<{ file: File; preview: string }[]>([]);
@@ -133,47 +139,6 @@ function BusinessFormInner() {
 
   function setLocStatusSafe(text: string, tone: "ok" | "error" | "warn") {
     setLocStatus({ text, tone });
-  }
-
-  async function detectLocation() {
-    if (!navigator.geolocation) {
-      enterManualMode("Your browser doesn't support location detection. Type your address below and it will be looked up automatically.");
-      return;
-    }
-    setLocationMode("detecting");
-    setLocStatusSafe("Detecting your location…", "warn");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const la = pos.coords.latitude;
-        const ln = pos.coords.longitude;
-        setCoords(la, ln);
-        setLocationMode("auto");
-        setLocStatusSafe("📍 Location detected", "ok");
-        try {
-          const addr = await reverseGeocode(la, ln);
-          if (addr) {
-            setAddress(addr);
-            setLocStatusSafe("📍 Location detected — we filled in the address. Edit it if needed.", "ok");
-          } else {
-            setLocStatusSafe("📍 Location detected — but the address lookup came up empty. Type your address.", "warn");
-          }
-        } catch (err) {
-          setLocStatusSafe("📍 Location detected — but the address lookup failed (" + ((err as Error).message || "network error") + "). Type your address.", "warn");
-        }
-      },
-      (err) => {
-        setCoords(null, null);
-        setLocationMode("idle");
-        if (err.code === err.PERMISSION_DENIED) {
-          enterManualMode("Location permission was denied. Type your address below and it will be looked up automatically — or allow location in your browser settings and try again.");
-        } else if (err.code === err.TIMEOUT) {
-          enterManualMode("Location detection timed out. Type your address below and it will be looked up automatically.");
-        } else {
-          enterManualMode("We couldn't detect your location. Type your address below and it will be looked up automatically.");
-        }
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-    );
   }
 
   function enterManualMode(message: string) {
@@ -427,16 +392,60 @@ function BusinessFormInner() {
       if (!active) return;
       if (businessId) {
         await loadBusiness();
-      } else {
-        setLocStatusSafe("", "warn");
-        detectLocation();
       }
+      // Create mode no longer auto-fires geolocation on mount (that fails on
+      // mobile because the permission prompt eats the timeout). The shared
+      // useCurrentLocation hook probes permission and only auto-detects when
+      // already granted; otherwise the "Detect my location" button below is
+      // the user gesture that lets the OS prompt + grant.
     })();
     return () => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When the shared hook resolves coordinates (auto, if permission was already
+  // granted, or after the owner taps "Detect my location"), fill the form and
+  // reverse-geocode the address. In edit mode we only apply once the owner
+  // explicitly asks, so we never silently overwrite saved coordinates.
+  useEffect(() => {
+    if (!loc.ready || loc.lat == null || loc.lng == null) return;
+    if (businessId && !detectAsked) return;
+    setCoords(loc.lat, loc.lng);
+    setLocationMode("auto");
+    setLocStatusSafe("📍 Location detected", "ok");
+    reverseGeocode(loc.lat, loc.lng)
+      .then((addr) => {
+        if (addr) {
+          setAddress(addr);
+          setLocStatusSafe("📍 Location detected — we filled in the address. Edit it if needed.", "ok");
+        } else {
+          setLocStatusSafe("📍 Location detected — but the address lookup came up empty. Type your address.", "warn");
+        }
+      })
+      .catch((err) =>
+        setLocStatusSafe("📍 Location detected — but the address lookup failed (" + ((err as Error).message || "network error") + "). Type your address.", "warn")
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loc.ready, loc.lat, loc.lng]);
+
+  // Surface a helpful hint based on the current permission state (create mode).
+  useEffect(() => {
+    if (businessId) return;
+    if (loc.ready || locStatus) return;
+    if (loc.state === "prompt")
+      setLocStatusSafe("Tap “Detect my location” to allow access — we’ll auto-fill your address.", "warn");
+    else if (loc.state === "locating")
+      setLocStatusSafe("Detecting your location…", "warn");
+    else if (loc.state === "denied")
+      setLocStatusSafe("Location permission was denied. Type your address below and it will be looked up automatically — or allow location in your browser settings and tap “Detect my location”.", "warn");
+    else if (loc.state === "unsupported")
+      setLocStatusSafe("Location isn’t available on this device. Type your address below and it will be looked up automatically.", "warn");
+    else if (loc.state === "error")
+      setLocStatusSafe("We couldn’t detect your location. Type your address below and it will be looked up automatically.", "warn");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loc.state, loc.ready]);
 
   const locStatusClass =
     locStatus?.tone === "ok"
@@ -515,11 +524,19 @@ function BusinessFormInner() {
                 {!businessId ? (
                   <button
                     type="button"
-                    onClick={detectLocation}
-                    className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary"
+                    onClick={() => {
+                      setDetectAsked(true);
+                      loc.request();
+                    }}
+                    disabled={loc.state === "locating"}
+                    className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary disabled:opacity-60"
                   >
                     <Icon name="i-map-pin" />
-                    {locationMode === "manual" ? "Detect my location again" : "Detect my location"}
+                    {loc.state === "locating"
+                      ? "Detecting…"
+                      : locationMode === "manual"
+                      ? "Detect my location again"
+                      : "Detect my location"}
                   </button>
                 ) : null}
                 {!businessId && locationMode === "auto" ? (
@@ -534,11 +551,15 @@ function BusinessFormInner() {
                 {businessId ? (
                   <button
                     type="button"
-                    onClick={detectLocation}
-                    className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary"
+                    onClick={() => {
+                      setDetectAsked(true);
+                      loc.request();
+                    }}
+                    disabled={loc.state === "locating"}
+                    className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-bold hover:border-primary disabled:opacity-60"
                   >
                     <Icon name="i-map-pin" />
-                    Update location
+                    {loc.state === "locating" ? "Detecting…" : "Update location"}
                   </button>
                 ) : null}
               </div>
