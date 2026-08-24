@@ -9,6 +9,7 @@ import { apiGet } from "@/lib/api";
 import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
 import { categoryDescription, categoryImage } from "@/lib/categories";
 import { isOpenNow } from "@/lib/helpers";
+import { NIGERIAN_CITIES } from "@/lib/locations";
 import type { Category, NearbyBusiness } from "@/lib/types";
 
 type OpenState = "all" | "open" | "closed";
@@ -34,10 +35,11 @@ export default function CategoryPage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [locationReady, setLocationReady] = useState(false);
+  const [locMode, setLocMode] = useState<string>("current");
 
   const [radius, setRadius] = useState<number>(SEARCH_RADIUS_KM);
   const [openState, setOpenState] = useState<OpenState>("all");
-  const [sort, setSort] = useState<SortMode>("recommended");
+  const [sort, setSort] = useState<SortMode>("availability");
 
   const [items, setItems] = useState<NearbyBusiness[]>([]);
   const [page, setPage] = useState(1);
@@ -64,13 +66,15 @@ export default function CategoryPage() {
     };
   }, [id]);
 
-  // Geolocation (falls back to Lagos when unavailable/denied).
-  useEffect(() => {
+  // Geolocation. On mobile, auto-requests often fail with PERMISSION_DENIED
+  // even when granted; we keep an automatic attempt for desktop, but also
+  // expose a "Use my location" button (a real user gesture) for mobile retry.
+  const requestLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocationReady(false);
       setLocMsg({
-        text: "Location is off — showing businesses near Lagos. Allow location for nearer results.",
-        error: true,
+        text: "Location isn’t available on this device — pick a city below to see nearby businesses.",
+        error: false,
       });
       return;
     }
@@ -84,21 +88,41 @@ export default function CategoryPage() {
       () => {
         setLocationReady(false);
         setLocMsg({
-          text: "Location access denied — showing businesses near Lagos. Allow location for nearer results.",
-          error: true,
+          text: "We couldn’t get your location. Tap “Use my location” or pick a city to see nearby businesses.",
+          error: false,
         });
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
 
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
+
+  // Resolve the coordinates actually used for the query. Falls back to a
+  // selected city, then to Lagos, so results always load even without GPS.
+  const effective = useMemo(() => {
+    if (locMode !== "current") {
+      const city = NIGERIAN_CITIES.find((c) => c.id === locMode);
+      if (city) {
+        return { lat: city.lat, lng: city.lng, label: city.name };
+      }
+    }
+    const useLat = lat ?? FALLBACK_LOCATION.lat;
+    const useLng = lng ?? FALLBACK_LOCATION.lng;
+    return {
+      lat: useLat,
+      lng: useLng,
+      label: locationReady ? "your current location" : "Lagos (default)",
+    };
+  }, [locMode, lat, lng, locationReady]);
+
   const fetchPage = useCallback(
     async (pageToLoad: number): Promise<NearbyResponse> => {
-      const useLat = lat ?? FALLBACK_LOCATION.lat;
-      const useLng = lng ?? FALLBACK_LOCATION.lng;
       const qs = new URLSearchParams({
-        lat: String(useLat),
-        lng: String(useLng),
+        lat: String(effective.lat),
+        lng: String(effective.lng),
         radius: String(radius),
         category: id,
         page: String(pageToLoad),
@@ -107,7 +131,7 @@ export default function CategoryPage() {
       const res = await apiGet<NearbyResponse>("/businesses/nearby?" + qs.toString());
       return res.data;
     },
-    [lat, lng, radius, id]
+    [effective.lat, effective.lng, radius, id]
   );
 
   // Reset + load the first page whenever filters/location/category change.
@@ -231,15 +255,16 @@ export default function CategoryPage() {
               </div>
             </div>
             {locMsg ? (
-              <p
-                className={`mt-4 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
-                  locMsg.error
-                    ? "border-destructive/30 text-destructive"
-                    : "border-primary/20 bg-primary/10 text-primary"
-                }`}
-              >
-                {locMsg.text}
-              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary">
+                <span>{locMsg.text}</span>
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  Use my location
+                </button>
+              </div>
             ) : null}
           </div>
         </section>
@@ -247,6 +272,31 @@ export default function CategoryPage() {
         <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
           {/* Filters */}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground">
+              <span>Location</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
+                >
+                  Use my location
+                </button>
+                <select
+                  value={locMode}
+                  onChange={(e) => setLocMode(e.target.value)}
+                  className="min-w-0 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground outline-none"
+                >
+                  <option value="current">My current location</option>
+                  {NIGERIAN_CITIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground">
               Distance
               <select

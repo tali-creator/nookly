@@ -44,7 +44,7 @@ function SearchContent() {
 
   const [radius, setRadius] = useState<number>(SEARCH_RADIUS_KM);
   const [openState, setOpenState] = useState<OpenState>("all");
-  const [sort, setSort] = useState<SortMode>("recommended");
+  const [sort, setSort] = useState<SortMode>("availability");
 
   const [items, setItems] = useState<NearbyBusiness[]>([]);
   const [page, setPage] = useState(1);
@@ -55,13 +55,15 @@ function SearchContent() {
   const [locMsg, setLocMsg] = useState<{ text: string; error: boolean } | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Live geolocation (used when "My current location" is selected).
-  useEffect(() => {
+  // Live geolocation (used when "My current location" is selected). On mobile,
+  // auto-requests often fail with PERMISSION_DENIED even when granted, so we
+  // also expose a "Use my location" button (a real user gesture) to retry.
+  const requestLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocationReady(false);
       setLocMsg({
-        text: "Location is off — pick a city above to narrow your search.",
-        error: true,
+        text: "Location isn’t available on this device — pick a city above to narrow your search.",
+        error: false,
       });
       return;
     }
@@ -75,13 +77,17 @@ function SearchContent() {
       () => {
         setLocationReady(false);
         setLocMsg({
-          text: "Location access denied — pick a city above to narrow your search.",
-          error: true,
+          text: "We couldn’t get your location. Tap “Use my location” or pick a city above to narrow your search.",
+          error: false,
         });
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
+
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   // Resolve the coordinates actually used for the query.
   const effective = useMemo(() => {
@@ -270,15 +276,16 @@ function SearchContent() {
             </form>
 
             {locMsg ? (
-              <p
-                className={`mt-3 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
-                  locMsg.error
-                    ? "border-destructive/30 text-destructive"
-                    : "border-primary/20 bg-primary/10 text-primary"
-                }`}
-              >
-                {locMsg.text}
-              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary">
+                <span>{locMsg.text}</span>
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  Use my location
+                </button>
+              </div>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
                 Showing results near <strong className="text-foreground">{effective.label}</strong>
