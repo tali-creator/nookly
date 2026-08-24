@@ -10,6 +10,7 @@ import BusinessCard from "@/components/BusinessCard";
 import { apiGet } from "@/lib/api";
 import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
 import { useMediaQuery } from "@/lib/useMediaQuery";
+import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { Category, NearbyBusiness } from "@/lib/types";
 
 // How many "Popular in your area" cards to show per breakpoint.
@@ -22,10 +23,7 @@ export default function LandingPage() {
   const [debouncedQ, setDebouncedQ] = useState("");
   const [locInput, setLocInput] = useState("Lekki, Lagos");
 
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [locationReady, setLocationReady] = useState(false);
-
+  const loc = useCurrentLocation();
   const [providers, setProviders] = useState<NearbyBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [nearLabel, setNearLabel] = useState("Verified businesses");
@@ -63,9 +61,9 @@ export default function LandingPage() {
         page: "1",
         limit: String(POPULAR_LIMIT_DESKTOP),
       });
-      if (locationReady && lat != null && lng != null) {
-        params.set("lat", String(lat));
-        params.set("lng", String(lng));
+      if (loc.ready && loc.lat != null && loc.lng != null) {
+        params.set("lat", String(loc.lat));
+        params.set("lng", String(loc.lng));
       } else {
         params.set("lat", String(FALLBACK_LOCATION.lat));
         params.set("lng", String(FALLBACK_LOCATION.lng));
@@ -81,7 +79,7 @@ export default function LandingPage() {
         if (cancelled) return;
         const items = res.data.data || [];
         setProviders(items);
-        setNearLabel(locationReady ? "Near you" : "Verified businesses");
+        setNearLabel(loc.ready ? "Near you" : "Verified businesses");
       } catch (err) {
         if (!cancelled) setProviders([]);
       } finally {
@@ -92,40 +90,27 @@ export default function LandingPage() {
     return () => {
       cancelled = true;
     };
-  }, [locationReady, lat, lng, debouncedQ]);
+  }, [loc.ready, loc.lat, loc.lng, debouncedQ]);
 
-  function requestLocation() {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationReady(false);
+  // Surface location status (the shared hook caches + reuses the last fix, so
+  // a reload or back-navigation won't re-prompt or re-fetch).
+  useEffect(() => {
+    if (loc.ready) {
+      setLocMsg({ text: "Showing businesses near your current location.", error: false });
+    } else if (loc.state === "denied") {
       setLocMsg({
-        text: "Location is unavailable. Enable location access to browse nearby businesses.",
+        text: "Location permission was denied. Enable it in your browser’s site settings, or search by city.",
         error: true,
       });
-      return;
+    } else if (loc.state === "error") {
+      setLocMsg({
+        text: "We couldn’t get your location. Enter a city to browse nearby businesses.",
+        error: true,
+      });
+    } else {
+      setLocMsg(null);
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocationReady(true);
-        setLocMsg({ text: "Showing businesses near your current location.", error: false });
-      },
-      () => {
-        setLocationReady(false);
-        setLocMsg({
-          text: "We need your location to show nearby businesses. Enter a city and it will be supported soon.",
-          error: true,
-        });
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-    );
-  }
-
-  // Kick off location as soon as the page mounts (matches original behavior).
-  useEffect(() => {
-    requestLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loc.ready, loc.state]);
 
   function onFindHelp() {
     const params = new URLSearchParams();
@@ -292,7 +277,7 @@ export default function LandingPage() {
           <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {loading ? (
               <div className="rounded-2xl border border-dashed border-border py-14 text-center text-muted-foreground md:col-span-2 lg:col-span-3">
-                {locationReady ? "Loading nearby businesses…" : "Loading verified businesses…"}
+                {loc.ready ? "Loading nearby businesses…" : "Loading verified businesses…"}
               </div>
             ) : providers.length ? (
               providers
