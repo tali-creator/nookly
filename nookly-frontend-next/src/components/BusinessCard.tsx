@@ -83,7 +83,6 @@ export default function BusinessCard({
 
   async function handleToggle() {
     if (busy) return;
-    if (!authGate.guard()) return;
     setBusy(true);
     const next = await toggleFavorite(business.id);
     setBusy(false);
