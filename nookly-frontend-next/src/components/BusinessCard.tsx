@@ -132,7 +132,7 @@ export default function BusinessCard({
           className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-background/85 transition hover:scale-105"
         >
           <svg
-            className={`size-4 ${isFav ? "fill-primary text-primary" : ""}`}
+            className={`size-4 ${isFav ? "fill-red-500 text-red-500" : ""}`}
             aria-hidden="true"
           >
             <use href="#i-heart" />

@@ -61,7 +61,7 @@ export default function BusinessActions({
         disabled={busy}
         className={`rounded-xl border px-5 py-3 text-sm font-bold transition ${
           isFav
-            ? "border-primary bg-primary/10 text-primary"
+            ? "border-red-500 bg-red-500/10 text-red-500"
             : "border-border bg-card text-foreground hover:bg-muted"
         }`}
       >
