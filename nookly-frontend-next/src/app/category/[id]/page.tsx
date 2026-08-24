@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import BusinessCard from "@/components/BusinessCard";
+import LocationPicker, { type PickedLocation } from "@/components/LocationPicker";
 import { apiGet } from "@/lib/api";
 import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
 import { categoryDescription, categoryImage } from "@/lib/categories";
@@ -35,6 +36,7 @@ export default function CategoryPage() {
 
   const loc = useCurrentLocation();
   const [locMode, setLocMode] = useState<string>("current");
+  const [manual, setManual] = useState<PickedLocation | null>(null);
 
   const [radius, setRadius] = useState<number>(SEARCH_RADIUS_KM);
   const [openState, setOpenState] = useState<OpenState>("all");
@@ -64,9 +66,11 @@ export default function CategoryPage() {
     };
   }, [id]);
 
-  // Resolve the coordinates actually used for the query. Falls back to a
-  // selected city, then to Lagos, so results always load even without GPS.
+  // Resolve the coordinates actually used for the query. A manually typed
+  // place wins; otherwise current GPS; otherwise a selected city; finally
+  // Lagos, so results always resolve to a real coordinate.
   const effective = useMemo(() => {
+    if (manual) return { lat: manual.lat, lng: manual.lng, label: manual.label };
     if (locMode !== "current") {
       const city = NIGERIAN_CITIES.find((c) => c.id === locMode);
       if (city) {
@@ -82,7 +86,7 @@ export default function CategoryPage() {
         ? "your current location…"
         : "Lagos (default)";
     return { lat: useLat, lng: useLng, label };
-  }, [locMode, loc.lat, loc.lng, loc.ready, loc.state]);
+  }, [manual, locMode, loc.lat, loc.lng, loc.ready, loc.state]);
 
   const fetchPage = useCallback(
     async (pageToLoad: number): Promise<NearbyResponse> => {
@@ -251,32 +255,14 @@ export default function CategoryPage() {
         <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
           {/* Filters */}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground">
-              <span>Location</span>
-              <div className="flex gap-2">
-                 <button
-                  type="button"
-                  onClick={loc.request}
-                  className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
-                >
-                  Use my location
-                </button>
-                <select
-                  value={locMode}
-                  onChange={(e) => setLocMode(e.target.value)}
-                  className="min-w-0 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground outline-none"
-                >
-                  <option value="current">My current location</option>
-                  {NIGERIAN_CITIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <LocationPicker
+              value={manual}
+              onChange={setManual}
+              onUseMyLocation={loc.request}
+              locating={loc.state === "locating"}
+            />
 
-            {locMode !== "current" || (loc.state === "granted" && loc.ready) ? (
+            {manual || locMode !== "current" || (loc.state === "granted" && loc.ready) ? (
               <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary sm:text-sm">
                 <svg className="size-4 shrink-0" aria-hidden="true">
                   <use href="#i-map-pin" />

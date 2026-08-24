@@ -15,6 +15,7 @@ import { kycRouter } from "./routes/kyc.routes";
 import { ownerRouter } from "./routes/owner.routes";
 import { conversationRouter } from "./routes/conversation.routes";
 import { notificationRouter } from "./routes/notification.routes";
+import { locationRouter } from "./routes/location.routes";
 import { notFoundHandler, errorHandler } from "./middleware/error.middleware";
 import { env } from "./config/env";
 
@@ -58,6 +59,7 @@ export function createApp(): Express {
   app.use("/categories", categoryRouter);
   app.use("/admin", adminRouter);
   app.use("/favorites", favoriteRouter);
+  app.use("/locations", locationRouter);
   app.use("/profile", profileRouter);
   app.use("/account", accountRouter);
   app.use("/kyc", kycRouter);

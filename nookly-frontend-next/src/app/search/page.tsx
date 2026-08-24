@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import BusinessCard from "@/components/BusinessCard";
+import LocationPicker, { type PickedLocation } from "@/components/LocationPicker";
 import { apiGet } from "@/lib/api";
 import { FALLBACK_LOCATION, SEARCH_RADIUS_KM } from "@/lib/config";
 import { isOpenNow } from "@/lib/helpers";
@@ -41,6 +42,14 @@ function SearchContent() {
   );
   const [locMode, setLocMode] = useState<string>(matchedCity ? matchedCity.id : "current");
 
+  const latParam = searchParams.get("lat");
+  const lngParam = searchParams.get("lng");
+  const [manual, setManual] = useState<PickedLocation | null>(
+    latParam && lngParam
+      ? { lat: parseFloat(latParam), lng: parseFloat(lngParam), label: locParam || "Selected location" }
+      : null
+  );
+
   const [radius, setRadius] = useState<number>(SEARCH_RADIUS_KM);
   const [openState, setOpenState] = useState<OpenState>("all");
   const [sort, setSort] = useState<SortMode>("availability");
@@ -53,8 +62,11 @@ function SearchContent() {
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Resolve the coordinates actually used for the query.
+  // Resolve the coordinates actually used for the query. A manually typed
+  // place wins; otherwise current GPS; otherwise a selected city; finally
+  // Lagos, so results always resolve to a real coordinate.
   const effective = useMemo(() => {
+    if (manual) return { lat: manual.lat, lng: manual.lng, label: manual.label };
     if (locMode !== "current") {
       const city = NIGERIAN_CITIES.find((c) => c.id === locMode);
       if (city) return { lat: city.lat, lng: city.lng, label: city.name };
@@ -68,7 +80,7 @@ function SearchContent() {
         ? "your current location…"
         : "Lagos (default)";
     return { lat: useLat, lng: useLng, label };
-  }, [locMode, loc.lat, loc.lng, loc.ready, loc.state]);
+  }, [manual, locMode, loc.lat, loc.lng, loc.ready, loc.state]);
 
   const fetchPage = useCallback(
     async (pageToLoad: number): Promise<NearbyResponse> => {
@@ -167,7 +179,11 @@ function SearchContent() {
     e.preventDefault();
     const params = new URLSearchParams();
     if (keywordInput.trim()) params.set("q", keywordInput.trim());
-    if (locMode !== "current") {
+    if (manual) {
+      params.set("loc", manual.label);
+      params.set("lat", String(manual.lat));
+      params.set("lng", String(manual.lng));
+    } else if (locMode !== "current") {
       const city = NIGERIAN_CITIES.find((c) => c.id === locMode);
       if (city) params.set("loc", city.name);
     }
@@ -215,24 +231,12 @@ function SearchContent() {
                   aria-label="Search keyword"
                 />
               </label>
-              <label className="flex items-center gap-2 rounded-xl bg-muted/60 px-4 py-3 text-sm">
-                <svg className="size-5 shrink-0 text-primary">
-                  <use href="#i-map-pin" />
-                </svg>
-                <select
-                  value={locMode}
-                  onChange={(e) => setLocMode(e.target.value)}
-                  className="min-w-0 bg-transparent font-medium text-foreground outline-none"
-                  aria-label="Location"
-                >
-                  <option value="current">My current location</option>
-                  {NIGERIAN_CITIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <LocationPicker
+                value={manual}
+                onChange={setManual}
+                onUseMyLocation={loc.request}
+                locating={loc.state === "locating"}
+              />
               <button
                 type="submit"
                 className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
@@ -241,7 +245,7 @@ function SearchContent() {
               </button>
             </form>
 
-            {loc.state === "granted" && loc.ready ? (
+            {manual || (loc.state === "granted" && loc.ready) ? (
               <p className="mt-3 text-sm text-muted-foreground">
                 Showing results near <strong className="text-foreground">{effective.label}</strong>
                 {q ? (
