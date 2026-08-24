@@ -276,6 +276,15 @@ export default function CategoryPage() {
               </div>
             </div>
 
+            {locMode !== "current" || (loc.state === "granted" && loc.ready) ? (
+              <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary sm:text-sm">
+                <svg className="size-4 shrink-0" aria-hidden="true">
+                  <use href="#i-map-pin" />
+                </svg>
+                <span className="break-words">{effective.label}</span>
+              </span>
+            ) : null}
+
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground">
               Distance
               <select
