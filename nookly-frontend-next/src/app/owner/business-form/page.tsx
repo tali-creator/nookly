@@ -341,16 +341,26 @@ function BusinessFormInner() {
     };
 
     setPhase("saving");
+    // Phase 1 — the business itself. A failure here is fatal.
+    let id: string | null = businessId;
     try {
-      let id = businessId;
       if (!id) {
         const { data } = await apiPost<{ business: { id: string } }>("/businesses", payload);
         id = data.business.id;
       } else {
         await apiPatch("/businesses/" + id, payload);
       }
+    } catch (err) {
+      setErrorPopup((err as Error).message || "Save failed");
+      setPhase("idle");
+      return;
+    }
 
-      await apiPut("/businesses/" + id + "/hours", hours);
+    // Phase 2 — secondary details (hours, services, photos). The business is
+    // already created/updated, so these must NEVER abort the save or show the
+    // fatal error popup. Failures are logged so they can be retried later.
+    try {
+      await apiPut("/businesses/" + id! + "/hours", hours);
 
       for (const svc of services) {
         if (!svc.name.trim()) continue;
@@ -359,7 +369,7 @@ function BusinessFormInner() {
         if (svc.id) {
           await apiPatch("/services/" + svc.id, { name: svc.name.trim(), price: priceVal });
         } else {
-          const { data } = await apiPost<{ serviceItem: { id: string } }>("/businesses/" + id + "/services", {
+          const { data } = await apiPost<{ serviceItem: { id: string } }>("/businesses/" + id! + "/services", {
             name: svc.name.trim(),
             price: priceVal,
           });
@@ -375,17 +385,17 @@ function BusinessFormInner() {
       for (const p of pendingPhotos) {
         const fd = new FormData();
         fd.append("photo", p.file);
-        const { data } = await apiPost<{ photo: Photo }>("/businesses/" + id + "/photos", fd);
+        const { data } = await apiPost<{ photo: Photo }>("/businesses/" + id! + "/photos", fd);
         setPhotos((prev) => [...prev, data.photo]);
       }
       setPendingPhotos([]);
-
-      setPhase("success");
-      setTimeout(() => router.push("/owner/dashboard"), 1000);
     } catch (err) {
-      setErrorPopup((err as Error).message || "Save failed");
-      setPhase("idle");
+      // Non-fatal: the business was already saved successfully.
+      console.warn("Some business details failed to save:", err);
     }
+
+    setPhase("success");
+    setTimeout(() => router.push("/owner/dashboard"), 1000);
   }
 
   useEffect(() => {
