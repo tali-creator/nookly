@@ -85,7 +85,6 @@ function BusinessFormInner() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [message, setMessage] = useState("");
   const [formTitle, setFormTitle] = useState("Business listing");
-  const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -110,6 +109,9 @@ function BusinessFormInner() {
   const [pendingPhotos, setPendingPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [services, setServices] = useState<ServiceRowState[]>([]);
   const [reapproval, setReapproval] = useState(false);
+  // "idle" | "saving" | "success" — drives the full-screen overlay.
+  const [phase, setPhase] = useState<"idle" | "saving" | "success">("idle");
+  const saving = phase !== "idle";
 
   const addressRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -336,7 +338,7 @@ function BusinessFormInner() {
       whatsappNumber: whatsapp.trim() || null,
     };
 
-    setSaving(true);
+    setPhase("saving");
     setMessage("");
     try {
       let id = businessId;
@@ -376,10 +378,11 @@ function BusinessFormInner() {
       }
       setPendingPhotos([]);
 
-      router.push("/owner/dashboard");
+      setPhase("success");
+      setTimeout(() => router.push("/owner/dashboard"), 1000);
     } catch (err) {
       showMessage((err as Error).message || "Save failed");
-      setSaving(false);
+      setPhase("idle");
     }
   }
 
@@ -791,6 +794,29 @@ function BusinessFormInner() {
           </button>
         </div>
       </section>
+
+      {phase !== "idle" ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-2xl bg-card px-9 py-8 shadow-xl">
+            {phase === "saving" ? (
+              <>
+                <svg className="size-10 animate-spin text-primary" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+                </svg>
+                <p className="text-sm font-semibold text-foreground">Saving your business…</p>
+              </>
+            ) : (
+              <>
+                <span className="flex size-14 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Icon name="i-check" className="size-7" />
+                </span>
+                <p className="text-sm font-semibold text-foreground">Business saved!</p>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
     </MarketplaceShell>
   );
 }
