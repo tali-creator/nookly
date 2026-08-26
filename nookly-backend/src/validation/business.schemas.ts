@@ -26,11 +26,11 @@ export const createBusinessSchema = z.object({
   phone: phoneSchema,
   whatsappNumber: optionalPhoneSchema,
   // Optional owner-supplied search keywords (free text). Tokenized with the
-  // name/description/address in the nearby search.
+  // name/description/address in the nearby search. Accepts null/empty.
   keywords: z
-    .string()
-    .trim()
-    .max(255, "Keywords must be 255 characters or fewer")
+    .union([z.string().trim(), z.null()])
+    .transform((v) => (v === null || v.trim() === "" ? null : v))
+    .pipe(z.string().max(255, "Keywords must be 255 characters or fewer").nullable())
     .optional(),
 });
 
@@ -42,12 +42,21 @@ export const updateBusinessSchema = createBusinessSchema
 
 export const serviceItemSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
+  // Price is optional — a service can be listed without a price (e.g. "Contact
+  // for quote"). When provided it must be a positive number with ≤2 decimals.
   price: z
-    .number()
-    .positive("Price must be greater than 0")
-    .refine((v) => Math.round(v * 100) === v * 100, {
-      message: "Price can have at most 2 decimal places",
-    }),
+    .union([z.number(), z.null()])
+    .transform((v) => (v === null || (typeof v === "number" && Number.isNaN(v)) ? null : v))
+    .pipe(
+      z
+        .number()
+        .positive("Price must be greater than 0")
+        .refine((v) => Math.round(v * 100) === v * 100, {
+          message: "Price can have at most 2 decimal places",
+        })
+        .nullable()
+    )
+    .optional(),
   description: z.string().trim().max(1000).optional(),
 });
 

@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import prisma from "../models/prisma";
 import { HttpError } from "../utils/http-error";
 import { getParam } from "../utils/params";
@@ -14,14 +15,18 @@ async function addService(
     const body = req.body as ServiceItemInput;
     const business = req.business!;
 
-    const serviceItem = await prisma.serviceItem.create({
-      data: {
-        businessId: business.id,
-        name: body.name,
-        price: body.price,
-        description: body.description ?? null,
-      },
-    });
+    // price is optional; omit the key when absent so Prisma stores NULL on
+    // the nullable Decimal column (null/undefined aren't valid field values).
+    const price = body.price == null ? undefined : body.price;
+
+    const data: Prisma.ServiceItemCreateInput = {
+      business: { connect: { id: business.id } },
+      name: body.name,
+      description: body.description ?? null,
+    };
+    if (price !== undefined) data.price = price;
+
+    const serviceItem = await prisma.serviceItem.create({ data });
 
     res.status(201).json({ serviceItem });
   } catch (err) {
@@ -48,9 +53,16 @@ async function updateService(
       throw new HttpError(403, "You do not own this business");
     }
 
+    // price is optional; omit it when absent so Prisma leaves the value
+    // unchanged (null isn't a valid update value for the Decimal field here).
+    const updateData: Prisma.ServiceItemUpdateInput = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description ?? null;
+    if (body.price != null) updateData.price = body.price;
+
     const updated = await prisma.serviceItem.update({
       where: { id: serviceItem.id },
-      data: body,
+      data: updateData,
     });
 
     res.status(200).json({ serviceItem: updated });

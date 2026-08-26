@@ -83,8 +83,10 @@ function BusinessFormInner() {
   const businessId = params.get("id");
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [message, setMessage] = useState("");
   const [formTitle, setFormTitle] = useState("Business listing");
+  // Validation/save errors surface as a centered modal popup so the owner
+  // sees them immediately instead of a banner at the top of the form.
+  const [errorPopup, setErrorPopup] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -118,7 +120,7 @@ function BusinessFormInner() {
   const serviceListRef = useRef<HTMLDivElement>(null);
 
   function showMessage(text: string) {
-    setMessage(text);
+    setErrorPopup(text);
   }
 
   function setCoords(la: number | null, ln: number | null) {
@@ -339,7 +341,6 @@ function BusinessFormInner() {
     };
 
     setPhase("saving");
-    setMessage("");
     try {
       let id = businessId;
       if (!id) {
@@ -352,14 +353,15 @@ function BusinessFormInner() {
       await apiPut("/businesses/" + id + "/hours", hours);
 
       for (const svc of services) {
-        if (!svc.name.trim() || svc.price.trim() === "") continue;
+        if (!svc.name.trim()) continue;
+        const priceVal = svc.price.trim() === "" ? null : parseFloat(svc.price);
         let serviceId = svc.id;
         if (svc.id) {
-          await apiPatch("/services/" + svc.id, { name: svc.name.trim(), price: parseFloat(svc.price) });
+          await apiPatch("/services/" + svc.id, { name: svc.name.trim(), price: priceVal });
         } else {
           const { data } = await apiPost<{ serviceItem: { id: string } }>("/businesses/" + id + "/services", {
             name: svc.name.trim(),
-            price: parseFloat(svc.price),
+            price: priceVal,
           });
           serviceId = data.serviceItem.id;
         }
@@ -381,7 +383,7 @@ function BusinessFormInner() {
       setPhase("success");
       setTimeout(() => router.push("/owner/dashboard"), 1000);
     } catch (err) {
-      showMessage((err as Error).message || "Save failed");
+      setErrorPopup((err as Error).message || "Save failed");
       setPhase("idle");
     }
   }
@@ -472,10 +474,6 @@ function BusinessFormInner() {
             Create or update the public details customers use to choose your business.
           </p>
         </div>
-
-        {message ? (
-          <p className="mb-6 rounded-xl bg-red-50 p-3 text-sm text-red-600">{message}</p>
-        ) : null}
 
         <div className="flex flex-col gap-6">
           {/* Business details */}
@@ -814,6 +812,25 @@ function BusinessFormInner() {
                 <p className="text-sm font-semibold text-foreground">Business saved!</p>
               </>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {errorPopup ? (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl border border-destructive/30 bg-card p-6 text-center shadow-xl">
+            <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <Icon name="i-alert-triangle" className="size-6" />
+            </span>
+            <h3 className="mt-4 font-mono text-lg font-bold">Something went wrong</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{errorPopup}</p>
+            <button
+              type="button"
+              onClick={() => setErrorPopup(null)}
+              className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+            >
+              Got it
+            </button>
           </div>
         </div>
       ) : null}

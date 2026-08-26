@@ -302,7 +302,7 @@ model ServiceItem {
   businessId  String   @db.Uuid
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   name        String
-  price       Decimal  @db.Decimal(10, 2)
+  price       Decimal? @db.Decimal(10, 2)
   description String?  @db.Text
   // Public photo for this service/price item (owner-uploaded via
   // POST /services/:id/photo). Stored under the public /uploads directory.
