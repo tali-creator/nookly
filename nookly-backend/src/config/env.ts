@@ -64,6 +64,25 @@ function requireDatabaseUrl(raw: string | undefined): string {
   return requireNonEmpty(raw, "DATABASE_URL");
 }
 
+/* Optional env var: required in production, but allowed to be empty in local
+   dev so the server can boot (and serve auth/messaging/analytics/search) without
+   production R2 credentials. Uploads will fail at request time if truly absent,
+   but the app stays runnable for local testing. */
+function optionalEnv(raw: string | undefined, name: string): string {
+  const value = (raw ?? "").trim();
+  if (!value && process.env.NODE_ENV === "production") {
+    throw new Error(
+      `${name} must be set in production. Refusing to start without it.`
+    );
+  }
+  if (!value) {
+    console.warn(
+      `[nookly] ${name} is not set — R2 storage is disabled locally (file uploads will fail until configured).`
+    );
+  }
+  return value;
+}
+
 /* Allowed browser origins. FRONTEND_URL may be a single origin or a
    comma-separated list. Because "localhost" and "127.0.0.1" are commonly
    used interchangeably during local development, each configured origin
@@ -96,19 +115,19 @@ export const env = {
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD ?? "",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "Nookly <noreply@nookly.local>",
-  // Cloudflare R2 (S3-compatible object storage).
-  r2AccountId: requireNonEmpty(process.env.R2_ACCOUNT_ID, "R2_ACCOUNT_ID"),
-  r2AccessKeyId: requireNonEmpty(process.env.R2_ACCESS_KEY_ID, "R2_ACCESS_KEY_ID"),
-  r2SecretAccessKey: requireNonEmpty(
+  // Cloudflare R2 (S3-compatible object storage). Optional in local dev.
+  r2AccountId: optionalEnv(process.env.R2_ACCOUNT_ID, "R2_ACCOUNT_ID"),
+  r2AccessKeyId: optionalEnv(process.env.R2_ACCESS_KEY_ID, "R2_ACCESS_KEY_ID"),
+  r2SecretAccessKey: optionalEnv(
     process.env.R2_SECRET_ACCESS_KEY,
     "R2_SECRET_ACCESS_KEY"
   ),
-  r2BucketPublic: requireNonEmpty(process.env.R2_BUCKET_PUBLIC, "R2_BUCKET_PUBLIC"),
-  r2BucketPrivate: requireNonEmpty(
+  r2BucketPublic: optionalEnv(process.env.R2_BUCKET_PUBLIC, "R2_BUCKET_PUBLIC"),
+  r2BucketPrivate: optionalEnv(
     process.env.R2_BUCKET_PRIVATE,
     "R2_BUCKET_PRIVATE"
   ),
-  r2PublicUrl: requireNonEmpty(process.env.R2_PUBLIC_URL, "R2_PUBLIC_URL"),
+  r2PublicUrl: optionalEnv(process.env.R2_PUBLIC_URL, "R2_PUBLIC_URL"),
   frontendOrigins: parseFrontendOrigins(frontendUrl),
   frontendUrl: frontendUrl.split(",")[0].trim(),
   supportEmail: process.env.SUPPORT_EMAIL ?? "support@nookly.local",

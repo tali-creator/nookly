@@ -91,6 +91,7 @@ function BusinessFormInner() {
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
+  const [keywords, setKeywords] = useState("");
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
 
@@ -188,6 +189,7 @@ function BusinessFormInner() {
     setCategoryId(found.categoryId || (found.category ? found.category.id : ""));
     setDescription(found.description || "");
     setAddress(found.address || "");
+    setKeywords(found.keywords || "");
     setCoords(found.lat, found.lng);
     setPhone(found.phone || "");
     setWhatsapp(found.whatsappNumber || found.whatsapp || "");
@@ -327,6 +329,7 @@ function BusinessFormInner() {
       categoryId,
       description: description.trim(),
       address: address.trim(),
+      keywords: keywords.trim() || null,
       lat: parseFloat(lat),
       lng: parseFloat(lng),
       phone: phone.trim(),
@@ -505,6 +508,20 @@ function BusinessFormInner() {
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  className="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-semibold sm:col-span-2">
+                Search keywords{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional — comma or space separated; helps customers find you, e.g.
+                  "babban saura, generator repair")
+                </span>
+                <input
+                  type="text"
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="babban saura, generator repair"
                   className="rounded-xl border border-border bg-background px-4 py-3 font-normal outline-none focus:ring-2 focus:ring-primary"
                 />
               </label>

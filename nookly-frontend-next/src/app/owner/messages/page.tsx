@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import { apiGet, apiPost } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
+import { connectAsUser, type IoSocket } from "@/lib/socketClient";
 import type { ConversationMessage, OwnerConversation } from "@/lib/types";
 
 function timeLabel(iso: string): string {
@@ -32,6 +33,7 @@ function MessagesInner() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<IoSocket | null>(null);
 
   useEffect(() => {
     ensureSeedFromQuery();
@@ -61,9 +63,41 @@ function MessagesInner() {
 
   useEffect(() => {
     if (!getToken()) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/ex-state-in-effect
     loadInbox();
   }, [loadInbox]);
+
+  // Live updates: connect as the owner and append messages pushed to the socket.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    let socket: IoSocket | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        socket = await connectAsUser(token);
+        socketRef.current = socket;
+        socket.on("conversation:message", (...args: unknown[]) => {
+          const payload = args[0] as {
+            conversationId?: string;
+            message?: ConversationMessage;
+          };
+          const msg = payload?.message;
+          if (!msg || !activeId || payload?.conversationId !== activeId) return;
+          setMessages((prev) =>
+            prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+          );
+        });
+      } catch {
+        /* best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+      socket?.disconnect();
+      socketRef.current = null;
+    };
+  }, [activeId]);
 
   async function openThread(conversationId: string) {
     setActiveId(conversationId);
@@ -74,7 +108,8 @@ function MessagesInner() {
     setActiveName(c ? c.businessName : "Conversation");
     try {
       const { data } = await apiGet<{ messages: ConversationMessage[] }>(
-        "/conversations/" + conversationId + "/messages"
+        "/conversations/" + conversationId + "/messages",
+        { noCache: true }
       );
       setMessages(data.messages || []);
     } catch {

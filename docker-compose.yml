@@ -1,0 +1,37 @@
+# Local development infrastructure for Nookly.
+#
+# Running `docker compose up -d` starts a Postgres instance that matches the
+# backend's LOCAL .env (nookly-backend/.env) DATABASE_URL:
+#   postgresql://nookly:nookly_dev_password@localhost:5432/nookly
+#
+# This keeps ALL local testing on a throwaway local database. Your hosted
+# (Render) backend uses its OWN environment variables configured in the Render
+# dashboard — pushing this repo never changes them, so local experiments can
+# never alter production data.
+#
+# After the DB is up, run migrations + seed once:
+#   cd nookly-backend
+#   npm run prisma:migrate
+#   npm run prisma:seed
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nookly-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nookly
+      POSTGRES_PASSWORD: nookly_dev_password
+      POSTGRES_DB: nookly
+    ports:
+      - "5432:5432"
+    volumes:
+      - nookly-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nookly -d nookly"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nookly-pg-data:

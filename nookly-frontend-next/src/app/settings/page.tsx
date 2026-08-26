@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountShell from "@/components/AccountShell";
+import RequireAuth from "@/components/RequireAuth";
 import { apiPatch, ApiError } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
 
@@ -57,6 +58,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <RequireAuth>
     <main className="min-h-screen bg-background text-foreground">
       <AccountShell active="settings">
         <section>
@@ -140,5 +142,6 @@ export default function SettingsPage() {
         </section>
       </AccountShell>
     </main>
+    </RequireAuth>
   );
 }

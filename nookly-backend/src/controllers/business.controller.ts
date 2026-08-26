@@ -56,6 +56,7 @@ async function create(
         lng: body.lng,
         phone: body.phone,
         whatsappNumber: body.whatsappNumber ?? null,
+        keywords: body.keywords ?? null,
         status,
       },
     });
@@ -201,12 +202,24 @@ async function nearby(
       conditions.push(Prisma.sql`b."categoryId" = ${category}`);
     }
     if (q) {
-      // Escape LIKE wildcards so user input can't inject % or _ patterns.
-      const escaped = q.replace(/[\\%_]/g, (m) => `\\${m}`);
-      const pattern = `%${escaped}%`;
-      conditions.push(
-        Prisma.sql`(b.name ILIKE ${pattern} OR b.description ILIKE ${pattern})`
-      );
+      // Tokenize the query into words and match each token as a substring
+      // across the business's name, description, address AND its owner-supplied
+      // keywords. Tokens are OR-combined so a search like "babban saura" finds
+      // anything mentioning "babban" OR "saura" (or both) — no need to type the
+      // full stored address. LIKE wildcards are escaped first.
+      const tokens = q
+        .split(/[\s,]+/)
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 10);
+      if (tokens.length) {
+        const tokenConditions = tokens.map((token) => {
+          const escaped = token.replace(/[\\%_]/g, (m) => `\\${m}`);
+          const pattern = `%${escaped}%`;
+          return Prisma.sql`(b.name ILIKE ${pattern} OR b.description ILIKE ${pattern} OR b.address ILIKE ${pattern} OR (b.keywords IS NOT NULL AND b.keywords ILIKE ${pattern}))`;
+        });
+        conditions.push(Prisma.join(tokenConditions, " OR "));
+      }
     }
     if (openNow) {
       // "Now" is evaluated in the business's own timezone. EXTRACT(DOW) uses

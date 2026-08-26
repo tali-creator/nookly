@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AccountShell from "@/components/AccountShell";
+import RequireAuth from "@/components/RequireAuth";
 import { apiGet, apiPatch } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
 import type { AppNotification } from "@/lib/types";
@@ -134,6 +135,7 @@ export default function NotificationsPage() {
   const allRead = items.length > 0 && items.every((n) => n.read);
 
   return (
+    <RequireAuth>
     <main className="min-h-screen bg-background text-foreground">
       <AccountShell active="notifications">
         <section>
@@ -239,5 +241,6 @@ export default function NotificationsPage() {
         </section>
       </AccountShell>
     </main>
+    </RequireAuth>
   );
 }

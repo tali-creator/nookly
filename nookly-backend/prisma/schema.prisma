@@ -155,6 +155,11 @@ model Business {
   categoryId      String         @db.Uuid
   category        Category       @relation(fields: [categoryId], references: [id])
   description     String         @db.Text
+  // Free-form, owner-supplied search keywords (e.g. "babban saura, generator
+  // repair"). Tokenized with the name/description/address in the nearby search
+  // so a customer typing any of those words still finds the business. Null when
+  // the owner hasn't set any.
+  keywords        String?
   address         String
   lat             Float
   lng             Float

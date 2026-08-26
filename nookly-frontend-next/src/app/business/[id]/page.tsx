@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
 import BusinessActions from "@/components/BusinessActions";
+import TrackBusinessView from "@/components/TrackBusinessView";
 import { apiGet } from "@/lib/api";
 import { assetUrl } from "@/lib/config";
 import { formatNaira } from "@/lib/format";
@@ -39,6 +40,7 @@ export default async function BusinessPage({
 
   return (
     <main className="min-h-screen">
+      <TrackBusinessView businessId={id} />
       <Header />
       <div className="mx-auto max-w-5xl px-4 py-6">
         <Link href="/" className="text-sm text-muted-foreground hover:underline">

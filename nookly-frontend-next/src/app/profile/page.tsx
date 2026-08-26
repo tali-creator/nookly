@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AccountShell from "@/components/AccountShell";
+import RequireAuth from "@/components/RequireAuth";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
 import { imageUrl, initials } from "@/lib/helpers";
@@ -230,6 +231,7 @@ export default function ProfilePage() {
   }
 
   return (
+    <RequireAuth>
     <main className="min-h-screen bg-background text-foreground">
       <AccountShell active="profile">
         <section>
@@ -659,5 +661,6 @@ export default function ProfilePage() {
         </section>
       </AccountShell>
     </main>
+    </RequireAuth>
   );
 }

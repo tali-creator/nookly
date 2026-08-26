@@ -4,6 +4,7 @@ import { HttpError } from "../utils/http-error";
 import { getParam } from "../utils/params";
 import { verifyToken } from "../utils/jwt";
 import { createNotification } from "../lib/notifications";
+import { emitToDevice, emitToUser } from "../lib/socket";
 import type {
   CreateConversationInput,
   SendMessageInput,
@@ -180,8 +181,8 @@ async function send(
       },
     });
 
-    // Notify the owner in real time when a customer replies.
     if (!owner) {
+      // Customer replied: notify the owner in real time.
       const business = await prisma.business.findUnique({
         where: { id: conversation.businessId },
         select: { name: true },
@@ -192,6 +193,23 @@ async function send(
         title: "New customer message",
         body: `You have a new message${business ? ` about ${business.name}` : ""}: "${text.slice(0, 90)}${text.length > 90 ? "…" : ""}"`,
         data: { businessId: conversation.businessId, conversationId: conversation.id },
+      });
+      // Push the actual message to the owner's socket room so the open thread
+      // updates live, not just the notification badge.
+      emitToUser(conversation.business.ownerId, "conversation:message", {
+        conversationId: conversation.id,
+        businessId: conversation.businessId,
+        message: messageToJson(message),
+      });
+    } else {
+      // Owner replied: notify the customer in real time. Customers are
+      // anonymous (no user/notification row), so the socket is their only
+      // delivery channel — push to the device room and let the client surface
+      // it as a notification/toast.
+      emitToDevice(conversation.deviceId, "conversation:message", {
+        conversationId: conversation.id,
+        businessId: conversation.businessId,
+        message: messageToJson(message),
       });
     }
 

@@ -25,6 +25,13 @@ export const createBusinessSchema = z.object({
     .max(180),
   phone: phoneSchema,
   whatsappNumber: optionalPhoneSchema,
+  // Optional owner-supplied search keywords (free text). Tokenized with the
+  // name/description/address in the nearby search.
+  keywords: z
+    .string()
+    .trim()
+    .max(255, "Keywords must be 255 characters or fewer")
+    .optional(),
 });
 
 export const updateBusinessSchema = createBusinessSchema

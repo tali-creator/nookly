@@ -36,12 +36,20 @@ export default function OwnerAnalyticsPage() {
     const focus = new URLSearchParams(window.location.search).get("id");
     setFocusId(focus);
 
-    apiGet<{ visitors: number }>("/owners/me/visits")
-      .then((r) => setVisitors((r.data.visitors || 0).toLocaleString()))
-      .catch(() => {});
-    apiGet<{ businesses: Biz[] }>("/businesses/mine")
+    const loadVisitors = () =>
+      apiGet<{ visitors: number }>("/owners/me/visits", { noCache: true })
+        .then((r) => setVisitors((r.data.visitors || 0).toLocaleString()))
+        .catch(() => {});
+
+    loadVisitors();
+    // Poll so a profile visit shows up within seconds rather than only on reload.
+    const interval = setInterval(loadVisitors, 20000);
+
+    apiGet<{ businesses: Biz[] }>("/businesses/mine", { noCache: true })
       .then((r) => setBusinesses(r.data.businesses || []))
       .catch(() => setBusinesses([]));
+
+    return () => clearInterval(interval);
   }, [router]);
 
   const total = businesses?.length || 0;

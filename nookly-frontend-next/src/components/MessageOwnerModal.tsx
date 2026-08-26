@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiGet, apiPost } from "@/lib/api";
 import { getDeviceId } from "@/lib/device-id";
+import { connectAsDevice, type IoSocket } from "@/lib/socketClient";
 
 interface Msg {
   id: string;
@@ -28,13 +29,15 @@ export default function MessageOwnerModal({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const socketRef = useRef<IoSocket | null>(null);
 
   useEffect(() => setMounted(true), []);
 
   async function loadMessages(id: string) {
     try {
       const r = await apiGet<{ messages: Msg[] }>(
-        `/conversations/${id}/messages?deviceId=${getDeviceId()}`
+        `/conversations/${id}/messages?deviceId=${getDeviceId()}`,
+        { noCache: true }
       );
       setMessages(r.data.messages || []);
     } catch {
@@ -42,17 +45,21 @@ export default function MessageOwnerModal({
     }
   }
 
-  // On open, look for an existing thread for this device+business.
+  // On open, look for an existing thread for this device+business, load full
+  // history, and open a real-time socket so the owner's replies arrive live.
   useEffect(() => {
     if (!open) return;
     setConvId(null);
     setMessages([]);
     setText("");
     let cancelled = false;
+    let socket: IoSocket | null = null;
+
     (async () => {
       try {
         const r = await apiGet<{ conversation: { id: string } }>(
-          `/conversations/mine?businessId=${businessId}&deviceId=${getDeviceId()}`
+          `/conversations/mine?businessId=${businessId}&deviceId=${getDeviceId()}`,
+          { noCache: true }
         );
         if (cancelled) return;
         setConvId(r.data.conversation.id);
@@ -60,9 +67,31 @@ export default function MessageOwnerModal({
       } catch {
         /* no existing thread yet — created on first send */
       }
+
+      // Real-time: receive owner replies pushed to this device's room.
+      try {
+        socket = await connectAsDevice(getDeviceId());
+        socketRef.current = socket;
+        socket.on("conversation:message", (...args: unknown[]) => {
+          const payload = args[0] as {
+            conversationId?: string;
+            message?: Msg;
+          };
+          const msg = payload?.message;
+          if (!msg || msg.senderType !== "OWNER") return;
+          setMessages((prev) =>
+            prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+          );
+        });
+      } catch {
+        /* socket is best-effort; history still works via REST */
+      }
     })();
+
     return () => {
       cancelled = true;
+      socket?.disconnect();
+      socketRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, businessId]);

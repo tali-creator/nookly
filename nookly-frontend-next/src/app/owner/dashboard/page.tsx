@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MarketplaceShell from "@/components/MarketplaceShell";
+import AddBusinessModal from "@/components/AddBusinessModal";
 import { apiGet, apiDelete } from "@/lib/api";
 import { getToken, ensureSeedFromQuery } from "@/lib/auth";
 import type { MyBusiness } from "@/lib/types";
@@ -41,6 +42,7 @@ export default function OwnerDashboardPage() {
   const [businesses, setBusinesses] = useState<MyBusiness[] | null>(null);
   const [error, setError] = useState("");
   const [visitors, setVisitors] = useState<string>("–");
+  const [addOpen, setAddOpen] = useState(false);
 
   const load = useCallback(async () => {
     setBusinesses(null);
@@ -127,15 +129,16 @@ export default function OwnerDashboardPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-mono sm:text-2xl font-bold">Your businesses</h2>
-              <Link
-                href="/owner/business-form"
+              <button
+                type="button"
+                onClick={() => setAddOpen(true)}
                 className="flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground"
               >
                 <svg className="size-4" aria-hidden="true">
                   <use href="#i-plus" />
                 </svg>
                 Add business
-              </Link>
+              </button>
             </div>
 
             <div className="grid gap-4">
@@ -207,6 +210,15 @@ export default function OwnerDashboardPage() {
           </div>
         </section>
       </MarketplaceShell>
+
+      <AddBusinessModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={() => {
+          setAddOpen(false);
+          load();
+        }}
+      />
     </main>
   );
 }

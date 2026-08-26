@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import MarketplaceShell from "@/components/MarketplaceShell";
 import BusinessCard from "@/components/BusinessCard";
+import RequireAuth from "@/components/RequireAuth";
 import { apiGet } from "@/lib/api";
 import { getDeviceId } from "@/lib/device-id";
 import { ensureSeedFromQuery, getUser } from "@/lib/auth";
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
+    <RequireAuth>
     <main className="min-h-screen bg-background text-foreground">
       <MarketplaceShell active="dashboard">
         {user?.role === "ADMIN" && (
@@ -137,5 +139,6 @@ export default function DashboardPage() {
         </section>
       </MarketplaceShell>
     </main>
+    </RequireAuth>
   );
 }

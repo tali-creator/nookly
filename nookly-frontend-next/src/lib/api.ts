@@ -113,15 +113,18 @@ export function clearSession(): void {
 async function apiFetch<T>(
   method: string,
   path: string,
-  body?: unknown
+  body?: unknown,
+  opts?: { noCache?: boolean }
 ): Promise<ApiResponse<T>> {
   const options: RequestInit = { method, headers: {} as Record<string, string> };
   const token = getToken();
   if (token) (options.headers as Record<string, string>)["Authorization"] = "Bearer " + token;
 
+  const noCache = opts?.noCache === true;
+
   // GET requests are served from cache when fresh (keyed by URL + auth token).
   const cacheKey = method === "GET" ? API_BASE_URL + path + "|" + token : null;
-  if (cacheKey) {
+  if (cacheKey && !noCache) {
     const hit = readCache(cacheKey);
     if (hit) return { status: 200, data: hit.data as T, text: hit.text };
   }
@@ -172,11 +175,19 @@ async function apiFetch<T>(
   // Writes invalidate the GET cache so subsequent reads are fresh.
   if (method !== "GET") invalidateApiCache();
 
+  // GETs are cached only when not explicitly bypassed.
+  if (method === "GET" && cacheKey && !noCache) {
+    writeCache(cacheKey, data, text);
+  }
+
   return { status: res.status, data: (data as T) ?? ({} as T), text };
 }
 
-export function apiGet<T = unknown>(path: string) {
-  return apiFetch<T>("GET", path);
+export function apiGet<T = unknown>(
+  path: string,
+  opts?: { noCache?: boolean }
+) {
+  return apiFetch<T>("GET", path, undefined, opts);
 }
 export function apiPost<T = unknown>(path: string, body?: unknown) {
   return apiFetch<T>("POST", path, body);
